@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <data name="AdditionalOptions" xml:space="preserve">
+    <value>ADDITIONAL OPTIONS</value>
+  </data>
+  <data name="AgentHeading" xml:space="preserve">
+    <value>Local anonymization agent</value>
+  </data>
+  <data name="AgentHelp" xml:space="preserve">
+    <value>Only this local model receives the original text. If the check fails, preparation stops.</value>
+  </data>
+  <data name="AgentModelHint" xml:space="preserve">
+    <value>Downloaded model name</value>
+  </data>
+  <data name="AnswerHelp" xml:space="preserve">
+    <value>The app suggests changes in chat. You can view replies with values restored locally.</value>
+  </data>
+  <data name="ApiEndpoint" xml:space="preserve">
+    <value>Chat API address (full endpoint)</value>
+  </data>
+  <data name="ApiHelp" xml:space="preserve">
+    <value>Compatible Chat Completions API. The model receives reviewed context and chat history. The key is used for authorization.</value>
+  </data>
+  <data name="ApiKeyHint" xml:space="preserve">
+    <value>API key, if required</value>
+  </data>
+  <data name="ApiModelHint" xml:space="preserve">
+    <value>Model ID</value>
+  </data>
+  <data name="ApproveContext" xml:space="preserve">
+    <value>I have reviewed the context and allow it to be used in chat with the selected model.</value>
+  </data>
+  <data name="AuthenticationRejected" xml:space="preserve">
+    <value>The API rejected authorization. Check the key and access permissions.</value>
+  </data>
+  <data name="BackToMessage" xml:space="preserve">
+    <value>Back to message</value>
+  </data>
+  <data name="Category_ADDRESS" xml:space="preserve">
+    <value>Internal address</value>
+  </data>
+  <data name="Category_CARD" xml:space="preserve">
+    <value>Bank card</value>
+  </data>
+  <data name="Category_CUSTOM" xml:space="preserve">
+    <value>Custom value</value>
+  </data>
+  <data name="Category_EMAIL" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Category_ENTITY" xml:space="preserve">
+    <value>Detected value</value>
+  </data>
+  <data name="Category_PATH" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Category_PERSON" xml:space="preserve">
+    <value>Person</value>
+  </data>
+  <data name="Category_PERSONAL" xml:space="preserve">
+    <value>Personal data</value>
+  </data>
+  <data name="Category_PHONE" xml:space="preserve">
+    <value>Phone</value>
+  </data>
+  <data name="Category_SECRET" xml:space="preserve">
+    <value>Secret</value>
+  </data>
+  <data name="ChatTab" xml:space="preserve">
+    <value>Chat</value>
+  </data>
+  <data name="ClearSession" xml:space="preserve">
+    <value>Clear session</value>
+  </data>
+  <data name="CloudModelBlocked" xml:space="preserve">
+    <value>Cloud Ollama models are not allowed in local mode. Select a downloaded model.</value>
+  </data>
+  <data name="ConnectionFailed" xml:space="preserve">
+    <value>Could not connect. Check the address, whether Ollama is running and whether the API is available.</value>
+  </data>
+  <data name="ContextHelp" xml:space="preserve">
+    <value>This is the text the model will receive. You can edit it: remove unnecessary content and check sensitive values. Review it again whenever the context changes.</value>
+  </data>
+  <data name="ContextHint" xml:space="preserve">
+    <value>The anonymized context of your selected folder will appear here.</value>
+  </data>
+  <data name="ContextLimit" xml:space="preserve">
+    <value>Context limit, characters</value>
+  </data>
+  <data name="ContextNotReady" xml:space="preserve">
+    <value>Context has not been prepared</value>
+  </data>
+  <data name="ContextTab" xml:space="preserve">
+    <value>Context</value>
+  </data>
+  <data name="CustomValueTooShort" xml:space="preserve">
+    <value>Each custom value must contain at least 2 characters.</value>
+  </data>
+  <data name="CustomValues" xml:space="preserve">
+    <value>Your values to replace</value>
+  </data>
+  <data name="CustomValuesHelp" xml:space="preserve">
+    <value>Values are replaced in files and messages. At least 2 characters; case-insensitive.</value>
+  </data>
+  <data name="CustomValuesHint" xml:space="preserve">
+    <value>One value per line:
+company name, surname, project…</value>
+  </data>
+  <data name="EmptyResponse" xml:space="preserve">
+    <value>The model returned an empty response.</value>
+  </data>
+  <data name="FilesHelp" xml:space="preserve">
+    <value>Match file aliases to local files when working with replies. Real paths are shown only on your device; the model receives aliases.</value>
+  </data>
+  <data name="FilesTab" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="FindAgentModels" xml:space="preserve">
+    <value>Find local models for the agent</value>
+  </data>
+  <data name="FolderHeading" xml:space="preserve">
+    <value>01   WORKING FOLDER</value>
+  </data>
+  <data name="FolderHelp" xml:space="preserve">
+    <value>Text documents and source code. Links, key files and service folders are skipped.</value>
+  </data>
+  <data name="FolderIsLink" xml:space="preserve">
+    <value>Select a regular folder, not a link or junction.</value>
+  </data>
+  <data name="FolderNotFound" xml:space="preserve">
+    <value>Folder not found.</value>
+  </data>
+  <data name="FolderOpenFailed" xml:space="preserve">
+    <value>Could not open the folder.</value>
+  </data>
+  <data name="FolderPath" xml:space="preserve">
+    <value>Folder path</value>
+  </data>
+  <data name="FolderPickerTitle" xml:space="preserve">
+    <value>Select a context folder</value>
+  </data>
+  <data name="FolderTooltip" xml:space="preserve">
+    <value>The folder is processed only after you click Prepare context.</value>
+  </data>
+  <data name="GenerationFailed" xml:space="preserve">
+    <value>The model reported a generation error. The original error text is hidden.</value>
+  </data>
+  <data name="HistoryTooLarge" xml:space="preserve">
+    <value>The context and history are too large. Start a new chat or reduce the context.</value>
+  </data>
+  <data name="HttpError" xml:space="preserve">
+    <value>The model server returned HTTP {0}. The original error text is hidden.</value>
+  </data>
+  <data name="HttpsRequired" xml:space="preserve">
+    <value>Remote APIs require HTTPS to protect the key and context in transit.</value>
+  </data>
+  <data name="InvalidAgentResponse" xml:space="preserve">
+    <value>The local agent returned an invalid format. Preparation stopped; nothing was sent to the main model.</value>
+  </data>
+  <data name="InvalidEndpoint" xml:space="preserve">
+    <value>Enter an HTTP(S) address without credentials, query parameters or a fragment.</value>
+  </data>
+  <data name="InvalidJson" xml:space="preserve">
+    <value>The server returned invalid JSON.</value>
+  </data>
+  <data name="InvalidResponseStream" xml:space="preserve">
+    <value>The model returned an invalid response stream.</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="LimitReached" xml:space="preserve">
+    <value> · limit reached</value>
+  </data>
+  <data name="LocalEndpointOnly" xml:space="preserve">
+    <value>Ollama allows only a local address: localhost, 127.0.0.1 or ::1.</value>
+  </data>
+  <data name="LocalModelUnconfirmed" xml:space="preserve">
+    <value>Ollama did not confirm a local model. Update Ollama and check the selected model.</value>
+  </data>
+  <data name="LocalModelsHint" xml:space="preserve">
+    <value>Downloaded Ollama models</value>
+  </data>
+  <data name="MessageReviewHeading" xml:space="preserve">
+    <value>MESSAGE FOR THE MODEL · REVIEW BEFORE SENDING</value>
+  </data>
+  <data name="ModelHeading" xml:space="preserve">
+    <value>03   CHAT MODEL</value>
+  </data>
+  <data name="ModelNameHint" xml:space="preserve">
+    <value>Or enter a model name manually</value>
+  </data>
+  <data name="ModelOrApiNotFound" xml:space="preserve">
+    <value>The model or API address was not found. Check the model name and endpoint.</value>
+  </data>
+  <data name="ModelRequired" xml:space="preserve">
+    <value>Enter the name of an installed model or an API model ID.</value>
+  </data>
+  <data name="ModelTimeout" xml:space="preserve">
+    <value>The model did not respond in time. Reduce the context or select another model.</value>
+  </data>
+  <data name="NewChat" xml:space="preserve">
+    <value>New chat</value>
+  </data>
+  <data name="NoTextFiles" xml:space="preserve">
+    <value>No suitable text files were found. Check the folder and context limit. PDF, Office, binary and key files are excluded.</value>
+  </data>
+  <data name="OllamaHelp" xml:space="preserve">
+    <value>Ollama must be running. Cloud models are excluded in this mode.</value>
+  </data>
+  <data name="Pipeline" xml:space="preserve">
+    <value>Folder → anonymize → review → model</value>
+  </data>
+  <data name="PrepareContext" xml:space="preserve">
+    <value>Prepare context  →</value>
+  </data>
+  <data name="PreviewShortcut" xml:space="preserve">
+    <value>Review first, then send · Ctrl+Enter</value>
+  </data>
+  <data name="PrivacyBadge" xml:space="preserve">
+    <value>●  On-device anonymization</value>
+  </data>
+  <data name="ProcessingFile" xml:space="preserve">
+    <value>Processing file {0}…</value>
+  </data>
+  <data name="ProfileAll" xml:space="preserve">
+    <value>Everything</value>
+  </data>
+  <data name="ProfileInternal" xml:space="preserve">
+    <value>Internal data and secrets</value>
+  </data>
+  <data name="ProfilePersonal" xml:space="preserve">
+    <value>Secrets and personal data</value>
+  </data>
+  <data name="ProfileSecrets" xml:space="preserve">
+    <value>Keys, passwords and tokens only</value>
+  </data>
+  <data name="PromptHint" xml:space="preserve">
+    <value>Describe what you want to do with the folder context…</value>
+  </data>
+  <data name="PromptTooLong" xml:space="preserve">
+    <value>The message is too long: at most 16,000 characters.</value>
+  </data>
+  <data name="ProtectionHeading" xml:space="preserve">
+    <value>02   ANONYMIZATION</value>
+  </data>
+  <data name="ProviderApi" xml:space="preserve">
+    <value>Remote model · API</value>
+  </data>
+  <data name="ProviderOllama" xml:space="preserve">
+    <value>Ollama · local model</value>
+  </data>
+  <data name="RateLimited" xml:space="preserve">
+    <value>The API request limit has been reached. Try again later.</value>
+  </data>
+  <data name="RedactionTimeout" xml:space="preserve">
+    <value>Anonymization stopped on an overly complex fragment. Reduce the context or exclude the file.</value>
+  </data>
+  <data name="RedirectBlocked" xml:space="preserve">
+    <value>The server requested a redirect. Enter the final address directly.</value>
+  </data>
+  <data name="RefreshModels" xml:space="preserve">
+    <value>Refresh Ollama models</value>
+  </data>
+  <data name="RemoteModelBlocked" xml:space="preserve">
+    <value>This Ollama model forwards requests to the cloud. Use a local model.</value>
+  </data>
+  <data name="ReplacementCount" xml:space="preserve">
+    <value>Replacements: {0}</value>
+  </data>
+  <data name="ReplacementsHelp" xml:space="preserve">
+    <value>Identical values receive the same placeholder within a session. Originals stay in memory and are used only to restore replies locally.</value>
+  </data>
+  <data name="ReplacementsTab" xml:space="preserve">
+    <value>Replacements</value>
+  </data>
+  <data name="ResponseTooLarge" xml:space="preserve">
+    <value>The model response is too large.</value>
+  </data>
+  <data name="RestoreLocally" xml:space="preserve">
+    <value>Restore values in replies on this device</value>
+  </data>
+  <data name="ReviewMessage" xml:space="preserve">
+    <value>Review message  →</value>
+  </data>
+  <data name="ScanSummary" xml:space="preserve">
+    <value>{0} files · {1:N0} characters · {2} skipped</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Send  ↑</value>
+  </data>
+  <data name="StatusAgentWorking" xml:space="preserve">
+    <value>The local agent is checking the data…</value>
+  </data>
+  <data name="StatusAnonymizingPrompt" xml:space="preserve">
+    <value>Anonymizing the message…</value>
+  </data>
+  <data name="StatusCancelled" xml:space="preserve">
+    <value>Operation cancelled.</value>
+  </data>
+  <data name="StatusCheckingMessage" xml:space="preserve">
+    <value>Checking the message before sending…</value>
+  </data>
+  <data name="StatusCheckingOllama" xml:space="preserve">
+    <value>Checking Ollama…</value>
+  </data>
+  <data name="StatusCleared" xml:space="preserve">
+    <value>Session cleared: the context, chat, key and replacement map are no longer used.</value>
+  </data>
+  <data name="StatusCollecting" xml:space="preserve">
+    <value>Collecting and anonymizing files locally…</value>
+  </data>
+  <data name="StatusContextUpdated" xml:space="preserve">
+    <value>New sensitive values were found in the message. The context was updated; review it again.</value>
+  </data>
+  <data name="StatusInitial" xml:space="preserve">
+    <value>Select a folder, model and anonymization rules.</value>
+  </data>
+  <data name="StatusLocalReply" xml:space="preserve">
+    <value>The local model is replying…</value>
+  </data>
+  <data name="StatusModelsFound" xml:space="preserve">
+    <value>Ollama is available · local models: {0}</value>
+  </data>
+  <data name="StatusNewChat" xml:space="preserve">
+    <value>New chat. The prepared context remains in memory.</value>
+  </data>
+  <data name="StatusNoModels" xml:space="preserve">
+    <value>No local models found. Download a model in Ollama, then refresh the list.</value>
+  </data>
+  <data name="StatusRemoteReply" xml:space="preserve">
+    <value>Anonymized context sent · the model is replying…</value>
+  </data>
+  <data name="StatusReplyReceived" xml:space="preserve">
+    <value>Reply received. History and the replacement map stay only in this session’s memory.</value>
+  </data>
+  <data name="StatusReviewContext" xml:space="preserve">
+    <value>Review the context on the right and confirm it. Automatic checks may miss sensitive data.</value>
+  </data>
+  <data name="StatusReviewMessage" xml:space="preserve">
+    <value>Review the message below. Sending starts after you click Send.</value>
+  </data>
+  <data name="StatusReviewUpdatedContext" xml:space="preserve">
+    <value>New values changed the anonymized context. Review the context again before sending.</value>
+  </data>
+  <data name="StatusReviewUpdatedMessage" xml:space="preserve">
+    <value>New values were found in the edited message. Review the result and click Send again.</value>
+  </data>
+  <data name="StatusReviewed" xml:space="preserve">
+    <value>Context reviewed. Open Chat and describe your task.</value>
+  </data>
+  <data name="StatusSelectModel" xml:space="preserve">
+    <value>Context reviewed. Select a chat model.</value>
+  </data>
+  <data name="StatusStopped" xml:space="preserve">
+    <value>Operation stopped.</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="StorageHelp" xml:space="preserve">
+    <value>Files on disk stay unchanged. The app does not save the key, chat or replacement map.</value>
+  </data>
+  <data name="StreamInterrupted" xml:space="preserve">
+    <value>The response stream was interrupted. Try again.</value>
+  </data>
+  <data name="Tagline" xml:space="preserve">
+    <value>Your context. Under your control.</value>
+  </data>
+  <data name="UnexpectedApiResponse" xml:space="preserve">
+    <value>The API returned an unexpected response format.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Could not complete the operation. The original exception text is hidden to protect your data.</value>
+  </data>
+  <data name="UnexpectedModelList" xml:space="preserve">
+    <value>Ollama returned an unexpected model list.</value>
+  </data>
+  <data name="UseAgent" xml:space="preserve">
+    <value>Additional check with Ollama</value>
+  </data>
+  <data name="WelcomeHelp" xml:space="preserve">
+    <value>Prepare the context and review it in the Context tab. Then describe your task: understand the project, find a problem or suggest changes.</value>
+  </data>
+  <data name="WelcomeTitle" xml:space="preserve">
+    <value>Start with your folder</value>
+  </data>
+  <data name="Workspace" xml:space="preserve">
+    <value>Workspace</value>
+  </data>
+  <data name="You" xml:space="preserve">
+    <value>YOU</value>
+  </data>
+</root>

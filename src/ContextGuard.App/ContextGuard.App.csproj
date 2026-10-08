@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>ContextGuard</AssemblyName>
+    <Version>0.1.0</Version>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <PublishTrimmed>false</PublishTrimmed>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.21" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.21" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.21" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.21" />
+    <ProjectReference Include="../ContextGuard.Core/ContextGuard.Core.csproj" />
+  </ItemGroup>
+</Project>

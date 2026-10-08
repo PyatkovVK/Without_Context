@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <data name="AdditionalOptions" xml:space="preserve">
+    <value>ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ</value>
+  </data>
+  <data name="AgentHeading" xml:space="preserve">
+    <value>Локальный агент обезличивания</value>
+  </data>
+  <data name="AgentHelp" xml:space="preserve">
+    <value>Исходный текст получит только эта локальная модель. Если проверка не пройдёт, подготовка остановится.</value>
+  </data>
+  <data name="AgentModelHint" xml:space="preserve">
+    <value>Название скачанной модели</value>
+  </data>
+  <data name="AnswerHelp" xml:space="preserve">
+    <value>Приложение предлагает изменения в чате. Ответы можно просматривать с локально восстановленными значениями.</value>
+  </data>
+  <data name="ApiEndpoint" xml:space="preserve">
+    <value>Адрес API чата (полный endpoint)</value>
+  </data>
+  <data name="ApiHelp" xml:space="preserve">
+    <value>Совместимый Chat Completions API. В модель отправляются просмотренный контекст и история диалога. Ключ используется для авторизации.</value>
+  </data>
+  <data name="ApiKeyHint" xml:space="preserve">
+    <value>API-ключ, если требуется</value>
+  </data>
+  <data name="ApiModelHint" xml:space="preserve">
+    <value>Идентификатор модели</value>
+  </data>
+  <data name="ApproveContext" xml:space="preserve">
+    <value>Я проверил контекст и разрешаю использовать его в диалоге с выбранной моделью.</value>
+  </data>
+  <data name="AuthenticationRejected" xml:space="preserve">
+    <value>API отклонил авторизацию. Проверьте ключ и права доступа.</value>
+  </data>
+  <data name="BackToMessage" xml:space="preserve">
+    <value>Вернуться к сообщению</value>
+  </data>
+  <data name="Category_ADDRESS" xml:space="preserve">
+    <value>Внутренний адрес</value>
+  </data>
+  <data name="Category_CARD" xml:space="preserve">
+    <value>Банковская карта</value>
+  </data>
+  <data name="Category_CUSTOM" xml:space="preserve">
+    <value>Ваше значение</value>
+  </data>
+  <data name="Category_EMAIL" xml:space="preserve">
+    <value>Электронная почта</value>
+  </data>
+  <data name="Category_ENTITY" xml:space="preserve">
+    <value>Найденное значение</value>
+  </data>
+  <data name="Category_PATH" xml:space="preserve">
+    <value>Путь</value>
+  </data>
+  <data name="Category_PERSON" xml:space="preserve">
+    <value>Имя</value>
+  </data>
+  <data name="Category_PERSONAL" xml:space="preserve">
+    <value>Персональные данные</value>
+  </data>
+  <data name="Category_PHONE" xml:space="preserve">
+    <value>Телефон</value>
+  </data>
+  <data name="Category_SECRET" xml:space="preserve">
+    <value>Секрет</value>
+  </data>
+  <data name="ChatTab" xml:space="preserve">
+    <value>Диалог</value>
+  </data>
+  <data name="ClearSession" xml:space="preserve">
+    <value>Очистить сессию</value>
+  </data>
+  <data name="CloudModelBlocked" xml:space="preserve">
+    <value>Облачная модель Ollama запрещена в локальном режиме. Выберите скачанную модель.</value>
+  </data>
+  <data name="ConnectionFailed" xml:space="preserve">
+    <value>Не удалось подключиться. Проверьте адрес, запущена ли Ollama и доступен ли API.</value>
+  </data>
+  <data name="ContextHelp" xml:space="preserve">
+    <value>Это текст, который получит модель. Его можно отредактировать: удалите лишнее и проверьте чувствительные значения. Если контекст изменится, проверку нужно повторить.</value>
+  </data>
+  <data name="ContextHint" xml:space="preserve">
+    <value>Здесь появится обезличенный контекст выбранной папки.</value>
+  </data>
+  <data name="ContextLimit" xml:space="preserve">
+    <value>Лимит контекста, символов</value>
+  </data>
+  <data name="ContextNotReady" xml:space="preserve">
+    <value>Контекст ещё не подготовлен</value>
+  </data>
+  <data name="ContextTab" xml:space="preserve">
+    <value>Контекст</value>
+  </data>
+  <data name="CustomValueTooShort" xml:space="preserve">
+    <value>Каждое собственное значение должно содержать минимум 2 символа.</value>
+  </data>
+  <data name="CustomValues" xml:space="preserve">
+    <value>Ваши значения для замены</value>
+  </data>
+  <data name="CustomValuesHelp" xml:space="preserve">
+    <value>Значения заменяются в файлах и сообщениях. Минимум 2 символа; регистр не важен.</value>
+  </data>
+  <data name="CustomValuesHint" xml:space="preserve">
+    <value>По одному значению на строку:
+название компании, фамилия, проект…</value>
+  </data>
+  <data name="EmptyResponse" xml:space="preserve">
+    <value>Модель вернула пустой ответ.</value>
+  </data>
+  <data name="FilesHelp" xml:space="preserve">
+    <value>Соответствие псевдонимов и файлов для работы с ответом. Реальные пути показаны только на вашем устройстве; модель получает псевдонимы.</value>
+  </data>
+  <data name="FilesTab" xml:space="preserve">
+    <value>Файлы</value>
+  </data>
+  <data name="FindAgentModels" xml:space="preserve">
+    <value>Найти локальные модели для агента</value>
+  </data>
+  <data name="FolderHeading" xml:space="preserve">
+    <value>01   РАБОЧАЯ ПАПКА</value>
+  </data>
+  <data name="FolderHelp" xml:space="preserve">
+    <value>Текстовые документы и исходный код. Ссылки, ключи и служебные папки пропускаются.</value>
+  </data>
+  <data name="FolderIsLink" xml:space="preserve">
+    <value>Выберите обычную папку, а не ссылку или junction.</value>
+  </data>
+  <data name="FolderNotFound" xml:space="preserve">
+    <value>Папка не найдена.</value>
+  </data>
+  <data name="FolderOpenFailed" xml:space="preserve">
+    <value>Не удалось открыть папку.</value>
+  </data>
+  <data name="FolderPath" xml:space="preserve">
+    <value>Путь к папке</value>
+  </data>
+  <data name="FolderPickerTitle" xml:space="preserve">
+    <value>Выберите папку для контекста</value>
+  </data>
+  <data name="FolderTooltip" xml:space="preserve">
+    <value>Папка обрабатывается только после нажатия «Подготовить контекст».</value>
+  </data>
+  <data name="GenerationFailed" xml:space="preserve">
+    <value>Модель сообщила об ошибке генерации. Исходный текст ошибки скрыт.</value>
+  </data>
+  <data name="HistoryTooLarge" xml:space="preserve">
+    <value>Контекст и история слишком велики. Начните новый диалог или уменьшите контекст.</value>
+  </data>
+  <data name="HttpError" xml:space="preserve">
+    <value>Сервер модели вернул HTTP {0}. Исходный текст ошибки скрыт.</value>
+  </data>
+  <data name="HttpsRequired" xml:space="preserve">
+    <value>Для удалённого API нужен HTTPS, чтобы защитить ключ и контекст при передаче.</value>
+  </data>
+  <data name="InvalidAgentResponse" xml:space="preserve">
+    <value>Локальный агент вернул неверный формат. Подготовка остановлена; данные в основную модель не отправлены.</value>
+  </data>
+  <data name="InvalidEndpoint" xml:space="preserve">
+    <value>Укажите HTTP(S)-адрес без пароля, параметров и фрагмента.</value>
+  </data>
+  <data name="InvalidJson" xml:space="preserve">
+    <value>Сервер вернул некорректный JSON.</value>
+  </data>
+  <data name="InvalidResponseStream" xml:space="preserve">
+    <value>Модель вернула некорректный поток ответа.</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Язык</value>
+  </data>
+  <data name="LimitReached" xml:space="preserve">
+    <value> · достигнут лимит</value>
+  </data>
+  <data name="LocalEndpointOnly" xml:space="preserve">
+    <value>Для Ollama разрешён только локальный адрес: localhost, 127.0.0.1 или ::1.</value>
+  </data>
+  <data name="LocalModelUnconfirmed" xml:space="preserve">
+    <value>Ollama не подтвердила наличие локальной модели. Обновите Ollama и проверьте выбранную модель.</value>
+  </data>
+  <data name="LocalModelsHint" xml:space="preserve">
+    <value>Скачанные модели Ollama</value>
+  </data>
+  <data name="MessageReviewHeading" xml:space="preserve">
+    <value>СООБЩЕНИЕ ДЛЯ МОДЕЛИ · ПРОВЕРЬТЕ ПЕРЕД ОТПРАВКОЙ</value>
+  </data>
+  <data name="ModelHeading" xml:space="preserve">
+    <value>03   МОДЕЛЬ ДЛЯ ЧАТА</value>
+  </data>
+  <data name="ModelNameHint" xml:space="preserve">
+    <value>Или введите имя модели вручную</value>
+  </data>
+  <data name="ModelOrApiNotFound" xml:space="preserve">
+    <value>Модель или адрес API не найдены. Проверьте имя модели и endpoint.</value>
+  </data>
+  <data name="ModelRequired" xml:space="preserve">
+    <value>Укажите название установленной модели или идентификатор модели API.</value>
+  </data>
+  <data name="ModelTimeout" xml:space="preserve">
+    <value>Модель не ответила за отведённое время. Уменьшите контекст или выберите другую модель.</value>
+  </data>
+  <data name="NewChat" xml:space="preserve">
+    <value>Новый диалог</value>
+  </data>
+  <data name="NoTextFiles" xml:space="preserve">
+    <value>Не найдено подходящих текстовых файлов. Проверьте папку и лимит контекста. PDF, Office, двоичные файлы и файлы с ключами не включаются.</value>
+  </data>
+  <data name="OllamaHelp" xml:space="preserve">
+    <value>Ollama должна быть запущена. Облачные модели в этом режиме исключены.</value>
+  </data>
+  <data name="Pipeline" xml:space="preserve">
+    <value>Папка → обезличивание → проверка → модель</value>
+  </data>
+  <data name="PrepareContext" xml:space="preserve">
+    <value>Подготовить контекст  →</value>
+  </data>
+  <data name="PreviewShortcut" xml:space="preserve">
+    <value>Сначала просмотр, затем отправка · Ctrl+Enter</value>
+  </data>
+  <data name="PrivacyBadge" xml:space="preserve">
+    <value>●  Обезличивание на устройстве</value>
+  </data>
+  <data name="ProcessingFile" xml:space="preserve">
+    <value>Обрабатываю файл {0}…</value>
+  </data>
+  <data name="ProfileAll" xml:space="preserve">
+    <value>Всё сразу</value>
+  </data>
+  <data name="ProfileInternal" xml:space="preserve">
+    <value>Внутренние данные и секреты</value>
+  </data>
+  <data name="ProfilePersonal" xml:space="preserve">
+    <value>Секреты и персональные данные</value>
+  </data>
+  <data name="ProfileSecrets" xml:space="preserve">
+    <value>Только ключи, пароли и токены</value>
+  </data>
+  <data name="PromptHint" xml:space="preserve">
+    <value>Напишите, что нужно сделать с контекстом папки…</value>
+  </data>
+  <data name="PromptTooLong" xml:space="preserve">
+    <value>Сообщение слишком длинное: максимум 16 000 символов.</value>
+  </data>
+  <data name="ProtectionHeading" xml:space="preserve">
+    <value>02   ОБЕЗЛИЧИВАНИЕ</value>
+  </data>
+  <data name="ProviderApi" xml:space="preserve">
+    <value>Удалённая модель · API</value>
+  </data>
+  <data name="ProviderOllama" xml:space="preserve">
+    <value>Ollama · локальная модель</value>
+  </data>
+  <data name="RateLimited" xml:space="preserve">
+    <value>Достигнут лимит запросов API. Повторите позже.</value>
+  </data>
+  <data name="RedactionTimeout" xml:space="preserve">
+    <value>Обезличивание остановлено: слишком сложный фрагмент. Уменьшите объём контекста или исключите файл.</value>
+  </data>
+  <data name="RedirectBlocked" xml:space="preserve">
+    <value>Сервер предложил перенаправление. Укажите конечный адрес напрямую.</value>
+  </data>
+  <data name="RefreshModels" xml:space="preserve">
+    <value>Обновить модели Ollama</value>
+  </data>
+  <data name="RemoteModelBlocked" xml:space="preserve">
+    <value>Эта модель Ollama перенаправляет запросы в облако. Используйте локальную модель.</value>
+  </data>
+  <data name="ReplacementCount" xml:space="preserve">
+    <value>Замен: {0}</value>
+  </data>
+  <data name="ReplacementsHelp" xml:space="preserve">
+    <value>Одинаковые значения получают одинаковый псевдоним в пределах сессии. Оригиналы находятся в памяти приложения и используются только для локального восстановления ответов.</value>
+  </data>
+  <data name="ReplacementsTab" xml:space="preserve">
+    <value>Замены</value>
+  </data>
+  <data name="ResponseTooLarge" xml:space="preserve">
+    <value>Ответ модели слишком большой.</value>
+  </data>
+  <data name="RestoreLocally" xml:space="preserve">
+    <value>Восстанавливать значения в ответах на этом устройстве</value>
+  </data>
+  <data name="ReviewMessage" xml:space="preserve">
+    <value>Проверить сообщение  →</value>
+  </data>
+  <data name="ScanSummary" xml:space="preserve">
+    <value>{0} файлов · {1:N0} символов · пропущено {2}</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Отправить  ↑</value>
+  </data>
+  <data name="StatusAgentWorking" xml:space="preserve">
+    <value>Локальный агент проверяет данные…</value>
+  </data>
+  <data name="StatusAnonymizingPrompt" xml:space="preserve">
+    <value>Обезличиваю сообщение…</value>
+  </data>
+  <data name="StatusCancelled" xml:space="preserve">
+    <value>Операция отменена.</value>
+  </data>
+  <data name="StatusCheckingMessage" xml:space="preserve">
+    <value>Проверяю сообщение перед отправкой…</value>
+  </data>
+  <data name="StatusCheckingOllama" xml:space="preserve">
+    <value>Проверяю Ollama…</value>
+  </data>
+  <data name="StatusCleared" xml:space="preserve">
+    <value>Сессия очищена: контекст, диалог, ключ и таблица замен больше не используются.</value>
+  </data>
+  <data name="StatusCollecting" xml:space="preserve">
+    <value>Собираю и обезличиваю файлы локально…</value>
+  </data>
+  <data name="StatusContextUpdated" xml:space="preserve">
+    <value>В сообщении найдены новые чувствительные значения. Контекст обновлён; проверьте его ещё раз.</value>
+  </data>
+  <data name="StatusInitial" xml:space="preserve">
+    <value>Выберите папку, модель и правила обезличивания.</value>
+  </data>
+  <data name="StatusLocalReply" xml:space="preserve">
+    <value>Локальная модель отвечает…</value>
+  </data>
+  <data name="StatusModelsFound" xml:space="preserve">
+    <value>Ollama доступна · локальных моделей: {0}</value>
+  </data>
+  <data name="StatusNewChat" xml:space="preserve">
+    <value>Новый диалог. Подготовленный контекст сохранён в памяти.</value>
+  </data>
+  <data name="StatusNoModels" xml:space="preserve">
+    <value>Локальные модели не найдены. Скачайте модель в Ollama, затем обновите список.</value>
+  </data>
+  <data name="StatusRemoteReply" xml:space="preserve">
+    <value>Отправлен обезличенный контекст · модель отвечает…</value>
+  </data>
+  <data name="StatusReplyReceived" xml:space="preserve">
+    <value>Ответ получен. История и таблица замен хранятся только в памяти этой сессии.</value>
+  </data>
+  <data name="StatusReviewContext" xml:space="preserve">
+    <value>Проверьте контекст справа и подтвердите его. Автоматическая проверка может пропустить чувствительные данные.</value>
+  </data>
+  <data name="StatusReviewMessage" xml:space="preserve">
+    <value>Проверьте сообщение ниже. Отправка начнётся после нажатия «Отправить».</value>
+  </data>
+  <data name="StatusReviewUpdatedContext" xml:space="preserve">
+    <value>Новые значения изменили обезличивание контекста. Проверьте контекст ещё раз перед отправкой.</value>
+  </data>
+  <data name="StatusReviewUpdatedMessage" xml:space="preserve">
+    <value>В исправленном сообщении обнаружены новые значения. Проверьте результат и нажмите «Отправить» ещё раз.</value>
+  </data>
+  <data name="StatusReviewed" xml:space="preserve">
+    <value>Контекст проверен. Откройте «Диалог» и напишите задачу.</value>
+  </data>
+  <data name="StatusSelectModel" xml:space="preserve">
+    <value>Контекст проверен. Выберите модель для чата.</value>
+  </data>
+  <data name="StatusStopped" xml:space="preserve">
+    <value>Операция остановлена.</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Остановить</value>
+  </data>
+  <data name="StorageHelp" xml:space="preserve">
+    <value>Файлы на диске не изменяются. Ключ, диалог и таблица замен не сохраняются приложением.</value>
+  </data>
+  <data name="StreamInterrupted" xml:space="preserve">
+    <value>Поток ответа прерван. Повторите запрос.</value>
+  </data>
+  <data name="Tagline" xml:space="preserve">
+    <value>Ваш контекст. Под вашим контролем.</value>
+  </data>
+  <data name="UnexpectedApiResponse" xml:space="preserve">
+    <value>API вернул неожиданный формат ответа.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Не удалось завершить операцию. Исходный текст исключения скрыт, чтобы не раскрыть данные.</value>
+  </data>
+  <data name="UnexpectedModelList" xml:space="preserve">
+    <value>Ollama вернула неожиданный список моделей.</value>
+  </data>
+  <data name="UseAgent" xml:space="preserve">
+    <value>Дополнительная проверка через Ollama</value>
+  </data>
+  <data name="WelcomeHelp" xml:space="preserve">
+    <value>Подготовьте контекст и проверьте его во вкладке «Контекст». Затем опишите задачу: разобраться в проекте, найти проблему или предложить изменения.</value>
+  </data>
+  <data name="WelcomeTitle" xml:space="preserve">
+    <value>Начните с вашей папки</value>
+  </data>
+  <data name="Workspace" xml:space="preserve">
+    <value>Рабочее пространство</value>
+  </data>
+  <data name="You" xml:space="preserve">
+    <value>ВЫ</value>
+  </data>
+</root>

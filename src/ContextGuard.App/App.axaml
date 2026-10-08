@@ -1,0 +1,46 @@
+<Application xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ContextGuard.App.App" RequestedThemeVariant="Dark">
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="Window">
+      <Setter Property="FontFamily" Value="Inter" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="#E7EBF3" />
+      <Setter Property="Background" Value="#0D1118" />
+    </Style>
+    <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="#8F9BAC" /></Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontWeight" Value="Medium" /><Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="#B4BECE" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="#0D1118" /><Setter Property="BorderBrush" Value="#293140" />
+      <Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="11,9" />
+      <Setter Property="MinHeight" Value="38" />
+      <Setter Property="SelectionBrush" Value="#655697" />
+    </Style>
+    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement"><Setter Property="BorderBrush" Value="#A68BF5" /></Style>
+    <Style Selector="TextBox:disabled /template/ Border#PART_BorderElement"><Setter Property="Background" Value="#151B25" /></Style>
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="#0D1118" /><Setter Property="BorderBrush" Value="#293140" />
+      <Setter Property="CornerRadius" Value="8" /><Setter Property="MinHeight" Value="38" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="13,9" />
+      <Setter Property="Background" Value="#242C3B" /><Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#AB91F3" /><Setter Property="Foreground" Value="#171025" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#BCA6FF" /></Style>
+    <Style Selector="Button.ghost"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="#AEBBCD" /></Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#151B25" /><Setter Property="BorderBrush" Value="#293140" />
+      <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="12" />
+    </Style>
+    <Style Selector="CheckBox"><Setter Property="FontSize" Value="12" /></Style>
+    <Style Selector="TabItem"><Setter Property="FontSize" Value="13" /></Style>
+  </Application.Styles>
+</Application>
