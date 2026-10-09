@@ -385,6 +385,177 @@ await Check("Cancelled custom preparation cannot publish a late summary", async 
     try { await task; throw new Exception("Cancelled summary published"); } catch (OperationCanceledException) { }
 });
 
+await Check("Durable chats round-trip, export and delete without touching unrelated files", async () =>
+{
+    using var work = new TestFolder();
+    var store = new JsonDirectoryChatStore(Path.Combine(work.Path, "chats"));
+    var redaction = Session();
+    string safe = redaction.Sanitize("Contact private@example.com password=persistent-only-secret");
+    var id = Guid.NewGuid(); var time = DateTimeOffset.UtcNow;
+    var chat = new StoredConversation(1, id, 7, time, true, safe,
+        new[] { new StoredMessage("user", safe, time), new StoredMessage("assistant", "Ответ: " + safe, time) });
+    await store.ReplaceAsync([chat], default);
+    File.WriteAllText(Path.Combine(store.Folder, "keep-me.txt"), "Unrelated file");
+    var restored = (await store.LoadAsync(default)).Single();
+    Equal(id, restored.Id, "Opaque identifier survives restart"); Equal(true, restored.Archived, "Archive flag survives restart");
+    Equal(time, restored.Messages[0].CreatedAt, "Message timestamp survives restart"); Equal(safe, restored.Context, "Safe context retained");
+    string exported = Path.Combine(work.Path, "exports");
+    await store.ExportAsync([restored], exported, default);
+    Equal(2, Directory.GetFiles(exported).Length, "JSON and Markdown exported");
+    foreach (string file in Directory.GetFiles(exported))
+        Excludes(File.ReadAllText(file), "private@example.com", "persistent-only-secret", "ApiKey", "LocalRelativePath");
+    using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
+    try { await store.ReplaceAsync([], cancelled.Token); throw new Exception("Cancelled replacement succeeded"); }
+    catch (OperationCanceledException) { }
+    Equal(1, (await store.LoadAsync(default)).Count, "Cancellation leaves saved chat intact");
+    await store.ReplaceAsync([], default);
+    Equal(0, (await store.LoadAsync(default)).Count, "Delete removes saved chat");
+    True(File.Exists(Path.Combine(store.Folder, "keep-me.txt")) && Directory.GetFiles(exported).Length == 2,
+        "Deletion preserves unrelated files and exported copies");
+});
+
+await Check("Storage rejects malformed, oversized, incomplete and mismatched chats", async () =>
+{
+    using var work = new TestFolder(); var store = new JsonDirectoryChatStore(work.Path);
+    var time = DateTimeOffset.UtcNow;
+    var chat = new StoredConversation(1, Guid.NewGuid(), 1, time, false, "safe", []);
+    await store.ReplaceAsync([chat], default);
+    async Task Rejected(Func<Task> action)
+    {
+        try { await action(); throw new Exception("Invalid storage was accepted"); } catch (SafeOperationException) { }
+    }
+    await Rejected(() => store.ReplaceAsync([chat with { Messages = [new("user", "unfinished", time)] }], default));
+    await Rejected(() => store.ReplaceAsync([chat with { Context = new string('x', FolderCollector.MaxContextChars + 1) }], default));
+    await Rejected(() => store.ReplaceAsync([chat with { Messages = [new("system", "bad role", time), new("assistant", "reply", time)] }], default));
+    await Rejected(() => store.ReplaceAsync(Enumerable.Range(1, JsonDirectoryChatStore.MaxChats + 1)
+        .Select(n => chat with { Id = Guid.NewGuid(), Number = n }).ToArray(), default));
+    Equal(1, (await store.LoadAsync(default)).Count, "Failed validation never replaces valid files");
+    string path = Path.Combine(work.Path, chat.Id.ToString("N") + ".json");
+    await File.WriteAllTextAsync(path, "{\"ApiKey\":\"should-not-be-read\"}");
+    await Rejected(async () => { await store.LoadAsync(default); });
+    await File.WriteAllTextAsync(path, JsonSerializer.Serialize(chat with { Id = Guid.NewGuid() }));
+    await Rejected(async () => { await store.LoadAsync(default); });
+    await File.WriteAllTextAsync(path, new string(' ', JsonDirectoryChatStore.MaxFileBytes + 1));
+    await Rejected(async () => { await store.LoadAsync(default); });
+});
+
+await Check("A pending deletion supersedes an old save and snapshots are immutable", async () =>
+{
+    var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var persisted = new List<IReadOnlyList<StoredConversation>>(); int writes = 0;
+    var store = new ControlledChatStore(async (chats, ct) =>
+    {
+        if (++writes == 1) { started.SetResult(); await release.Task.WaitAsync(ct); }
+        persisted.Add(chats);
+    });
+    using var service = new ChatArchiveService(store);
+    var messages = new List<StoredMessage> { new("user", "safe", DateTimeOffset.UtcNow), new("assistant", "reply", DateTimeOffset.UtcNow) };
+    var original = new StoredConversation(1, Guid.NewGuid(), 1, DateTimeOffset.UtcNow, false, "safe context", messages);
+    Task old = service.SaveAsync([original]);
+    await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    messages[0] = messages[0] with { Content = "mutated later" };
+    _ = service.SaveAsync([original with { Archived = true }]);
+    Task deletion = service.SaveAsync([]);
+    release.SetResult(); await deletion; await old;
+    Equal("safe", persisted[0][0].Messages[0].Content, "Nested messages copied before queueing");
+    Equal(0, persisted[^1].Count, "Late old save cannot restore a deleted chat");
+    Equal(2, writes, "Only latest pending snapshot is retained");
+});
+
+await Check("Storage failures can retry and disposal cancels late loading", async () =>
+{
+    int attempts = 0;
+    var store = new ControlledChatStore((_, _) => ++attempts == 1 ? Task.FromException(new SafeOperationException("ChatStorageWriteFailed")) : Task.CompletedTask);
+    using var service = new ChatArchiveService(store);
+    try { await service.SaveAsync([]); throw new Exception("Write failure ignored"); } catch (SafeOperationException) { }
+    await service.SaveAsync([]); Equal(2, attempts, "A failed writer does not poison retries");
+    var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var completion = new TaskCompletionSource<IReadOnlyList<StoredConversation>>(TaskCreationOptions.RunContinuationsAsynchronously);
+    store.Loader = _ => { started.SetResult(); return completion.Task; };
+    var load = service.LoadAsync(); await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    service.Dispose(); completion.SetResult([]);
+    try { await load; throw new Exception("Late loaded state published after disposal"); } catch (OperationCanceledException) { }
+});
+
+await Check("Earlier-session placeholders remain opaque after reopening", () =>
+{
+    var previous = Session(); string safe = previous.Sanitize("password=original-value");
+    var reopened = new RedactionSession(new(ProtectionProfile.Everything, new[] { "CG", "SECRET" }));
+    Equal(safe, reopened.Sanitize(safe), "Custom values cannot rewrite older placeholders");
+    Excludes(reopened.RestoreForLocalDisplay(safe), "original-value");
+    return Task.CompletedTask;
+});
+
+await Check("Chat titles capture the goal, preserve language and reject unsuitable model output", () =>
+{
+    Equal("Create a product launch plan", ConversationTitleService.Fallback("Hello! Please help me create a product launch plan. My contact is hidden."), "English goal without greeting");
+    Equal("Составить план запуска продукта", ConversationTitleService.Fallback("Привет! Помоги мне составить план запуска продукта."), "Russian task remains Russian");
+    True(ConversationTitleService.Normalize("An explanation\nwith multiple lines") is null, "Multi-line answers are not titles");
+    True(ConversationTitleService.Normalize(new string('x', 257)) is null, "Excessive title text is rejected");
+    Equal("Product launch plan", ConversationTitleService.Normalize("\"Product launch plan\""), "Quotes removed");
+    True(ConversationTitleService.Fallback(new string('x', 2000)).Length <= ConversationTitleService.MaxCharacters, "Fallback is bounded");
+    var session = Session(); string safe = session.Sanitize("Plan for contact@example.com password=title-secret");
+    Excludes(ConversationTitleService.Fallback(safe), "contact@example.com", "title-secret", "[CG_");
+    return Task.CompletedTask;
+});
+
+await Check("Title requests use bounded anonymized input, JSON output and header-only API credentials", async () =>
+{
+    var session = Session(); string safe = session.Sanitize("Create a launch plan for private@example.com password=title-private-value");
+    foreach (var provider in new[] { ModelProvider.Ollama, ModelProvider.RemoteApi })
+    {
+        int generated = 0;
+        using var client = new ModelClient(new StubHandler(async request =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/show") return Response("{\"model_info\":{\"general.architecture\":\"llama\"}}");
+            generated++;
+            string payload = await request.Content!.ReadAsStringAsync();
+            Excludes(payload, "private@example.com", "title-private-value", "title-header-only-key");
+            using var json = JsonDocument.Parse(payload);
+            Equal(false, json.RootElement.GetProperty("stream").GetBoolean(), "Titles are a short non-streaming request");
+            string input = json.RootElement.GetProperty("messages")[1].GetProperty("content").GetString()!;
+            True(input.Length < 6200, "Title prompt is bounded independently of chat context");
+            if (provider == ModelProvider.RemoteApi) Equal("title-header-only-key", request.Headers.Authorization?.Parameter, "API key in header only");
+            return provider == ModelProvider.Ollama ? Response("{\"message\":{\"content\":\"Product launch plan\"}}") :
+                Response("{\"choices\":[{\"message\":{\"content\":\"Product launch plan\"}}]}");
+        }));
+        var service = new ConversationTitleService(client);
+        var settings = new ModelSettings(provider, provider == ModelProvider.Ollama ? "http://localhost:11434" : "https://example.com/v1/chat/completions", "demo-local", "title-header-only-key");
+        Equal("Product launch plan", await service.GenerateAsync(settings, safe, safe + new string('x', 10_000), default), "Meaningful short title");
+        Equal(1, generated, "One title inference per invocation");
+    }
+});
+
+await Check("Title failures are optional and cancellation rejects a late model result", async () =>
+{
+    using var badClient = new ModelClient(new StubHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable))));
+    var service = new ConversationTitleService(badClient);
+    True(await service.GenerateAsync(new(ModelProvider.RemoteApi, "https://example.com/v1/chat/completions", "demo"), "Plan a launch", "Safe context", default) is null,
+        "Title HTTP failure leaves fallback usable");
+    var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var fake = new ControlledTitleModel((_, _, _, _) => completion.Task);
+    using var cancellation = new CancellationTokenSource();
+    var late = new ConversationTitleService(fake).GenerateAsync(new(ModelProvider.Ollama, "http://localhost:11434", "demo"), "Goal", "Context", cancellation.Token);
+    cancellation.Cancel(); completion.SetResult("Late generated title");
+    try { await late; throw new Exception("Cancelled title returned successfully"); } catch (OperationCanceledException) { }
+});
+
+await Check("Legacy chats load without titles and version 2 titles survive save and export", async () =>
+{
+    using var work = new TestFolder(); var store = new JsonDirectoryChatStore(Path.Combine(work.Path, "chats"));
+    var time = DateTimeOffset.UtcNow; var id = Guid.NewGuid(); Directory.CreateDirectory(store.Folder);
+    var legacy = new { Version = 1, Id = id, Number = 1, UpdatedAt = time, Archived = false, Context = "safe", Messages = Array.Empty<StoredMessage>() };
+    await File.WriteAllTextAsync(Path.Combine(store.Folder, id.ToString("N") + ".json"), JsonSerializer.Serialize(legacy));
+    var loaded = (await store.LoadAsync(default)).Single(); Equal("", loaded.Title, "Version 1 doesn't require a title field");
+    await store.ReplaceAsync([loaded with { Version = 2, Title = "Product launch plan" }], default);
+    var updated = (await store.LoadAsync(default)).Single(); Equal("Product launch plan", updated.Title, "Version 2 stores the goal title");
+    string export = Path.Combine(work.Path, "export"); await store.ExportAsync([updated], export, default);
+    True(File.ReadAllText(Directory.GetFiles(export, "*.md").Single()).StartsWith("# Product launch plan"), "Markdown export carries the title");
+    try { await store.ReplaceAsync([updated with { Title = new string('x', ConversationTitleService.MaxCharacters + 1) }], default); throw new Exception("Oversized title saved"); }
+    catch (SafeOperationException) { }
+});
+
 Console.WriteLine($"\n{passed} passed, {failed} failed.");
 return failed == 0 ? 0 : 1;
 
@@ -423,4 +594,18 @@ sealed class TestFolder : IDisposable
         string resolved = System.IO.Path.GetFullPath(Path);
         if (System.IO.Path.GetDirectoryName(resolved) == root && System.IO.Path.GetFileName(resolved).StartsWith("case-", StringComparison.Ordinal)) Directory.Delete(resolved, true);
     }
+}
+
+sealed class ControlledChatStore(Func<IReadOnlyList<StoredConversation>, CancellationToken, Task> writer) : IChatStore
+{
+    public string Folder => "synthetic-store";
+    public Func<CancellationToken, Task<IReadOnlyList<StoredConversation>>> Loader { get; set; } = _ => Task.FromResult<IReadOnlyList<StoredConversation>>([]);
+    public Task<IReadOnlyList<StoredConversation>> LoadAsync(CancellationToken ct) => Loader(ct);
+    public Task ReplaceAsync(IReadOnlyList<StoredConversation> chats, CancellationToken ct) => writer(chats, ct);
+    public Task ExportAsync(IReadOnlyList<StoredConversation> chats, string folder, CancellationToken ct) => Task.CompletedTask;
+}
+
+sealed class ControlledTitleModel(Func<ModelSettings, string, string, CancellationToken, Task<string>> generate) : IConversationTitleModel
+{
+    public Task<string> GenerateTitleAsync(ModelSettings settings, string safeGoal, string safeContext, CancellationToken ct) => generate(settings, safeGoal, safeContext, ct);
 }

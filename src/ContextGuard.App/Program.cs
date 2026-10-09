@@ -11,5 +11,6 @@ internal static class Program
         SmokeStartup = args.Contains("--smoke-startup", StringComparer.Ordinal);
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
-    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>().UsePlatformDetect().WithInterFont();
+    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>().UsePlatformDetect()
+        .With(new X11PlatformOptions { WmClass = "WithoutContext" }).WithInterFont();
 }

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Without Context
+Exec=@EXEC@
+Icon=WithoutContext
+Terminal=false
+Categories=Utility;
+StartupWMClass=WithoutContext

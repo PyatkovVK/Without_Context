@@ -51,7 +51,8 @@ public sealed class RedactionSession
 
     private string OutsideTokens(string text, Func<string, string> transform)
     {
-        string[] parts = Regex.Split(text, $@"(\[CG_{sessionId}_[A-Z]+_\d+\])", RegexOptions.None, MatchTimeout);
+        // Reopened chats also contain opaque placeholders from an earlier session.
+        string[] parts = Regex.Split(text, @"(\[CG_[A-F0-9]{12}_[A-Z]+_\d+\])", RegexOptions.None, MatchTimeout);
         return string.Concat(parts.Select((part, i) => i % 2 == 0 ? transform(part) : part));
     }
 

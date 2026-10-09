@@ -1,48 +1,56 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:ContextGuard.App" x:Class="ContextGuard.App.MainWindow" Title="Without Context"
+        xmlns:local="using:ContextGuard.App" x:Class="ContextGuard.App.MainWindow" Title="Without Context" Icon="/images/icon.png"
         Width="1448" Height="920" MinWidth="1000" MinHeight="720" WindowStartupLocation="CenterScreen">
-  <Grid Margin="12">
+  <Grid>
+  <Grid Name="WorkspaceSurface" Margin="12" IsHitTestVisible="{Binding !SettingsOpen}">
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="{Binding ChatsSidebarWidth}" /><ColumnDefinition Width="10" />
-      <ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="{Binding ModelsSidebarWidth}" />
+      <ColumnDefinition Width="Auto" /><ColumnDefinition Width="10" />
+      <ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="Auto" />
     </Grid.ColumnDefinitions>
 
-    <Border Name="ChatsSidebar" Grid.Column="0" Classes="panel" Padding="{Binding ChatsSidebarPadding}">
+    <Border Name="ChatsSidebar" Grid.Column="0" Classes="panel" Width="{Binding ChatsSidebarPixels}" ClipToBounds="True" Padding="{Binding ChatsSidebarPadding}">
+      <Border.Transitions><Transitions><DoubleTransition Property="Width" Duration="0:0:0.36" Easing="CubicEaseInOut" /><ThicknessTransition Property="Padding" Duration="0:0:0.36" Easing="CubicEaseInOut" /></Transitions></Border.Transitions>
       <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
         <Grid ColumnDefinitions="*,Auto" Margin="6,0,0,24">
-          <StackPanel Orientation="Horizontal" Spacing="11" VerticalAlignment="Center" IsVisible="{Binding ChatsSidebarOpen}">
-            <Path Data="{StaticResource ShieldIcon}" Classes="outline" Width="32" Height="32" StrokeThickness="1.3" />
-            <TextBlock Text="Without Context" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
-          </StackPanel>
+          <Grid ColumnDefinitions="40,*" VerticalAlignment="Center" Margin="0,0,8,0" local:SmoothVisibility.IsShown="{Binding ChatsSidebarOpen}">
+            <Image Source="/images/icon.png" Width="40" Height="40" Stretch="Uniform" />
+            <TextBlock Grid.Column="1" Text="Without Context" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Margin="11,0,0,0" TextTrimming="CharacterEllipsis" />
+          </Grid>
           <Button Name="ToggleChatsButton" Grid.Column="1" Content="{Binding ChatsToggleGlyph}" Command="{Binding ToggleChatsCommand}" Classes="icon" ToolTip.Tip="{Binding ChatsToggleTip}" />
         </Grid>
-        <Button Grid.Row="1" Name="NewChatButton" Command="{Binding NewChatCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" MinHeight="50" Margin="0,0,0,26" IsVisible="{Binding ChatsSidebarOpen}">
-          <StackPanel Orientation="Horizontal" Spacing="16"><Path Classes="outline" Data="{StaticResource PlusIcon}" /><TextBlock Text="{Binding Text[NewChat]}" FontWeight="SemiBold" /></StackPanel>
+        <Button Grid.Row="1" Name="NewChatButton" Command="{Binding NewChatCommand}" Width="{Binding ChatsBodyWidth}" HorizontalAlignment="Left" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" Height="52" Padding="16,0" Margin="0,0,0,26" local:SmoothVisibility.IsShown="{Binding ChatsSidebarOpen}">
+          <Grid ColumnDefinitions="20,*,20"><Path Classes="outline" Data="{StaticResource PlusIcon}" VerticalAlignment="Center" /><TextBlock Name="NewChatLabel" Grid.Column="1" Text="{Binding Text[NewChat]}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Grid>
         </Button>
         <Button Grid.Row="1" Command="{Binding NewChatCommand}" IsVisible="{Binding !ChatsSidebarOpen}" Classes="icon" ToolTip.Tip="{Binding Text[NewChat]}"><Path Classes="outline" Data="{StaticResource PlusIcon}" /></Button>
-        <TextBlock Grid.Row="2" Text="{Binding ChatListHeading}" Classes="muted" FontSize="12" Margin="10,0,0,10" IsVisible="{Binding ChatsSidebarOpen}" />
-        <ListBox Name="ConversationsList" Grid.Row="3" ItemsSource="{Binding VisibleConversations}" SelectedItem="{Binding Active}" IsVisible="{Binding ChatsSidebarOpen}" IsEnabled="{Binding NotBusy}" Background="Transparent" BorderThickness="0" ItemContainerTheme="{StaticResource ChatItemTheme}">
+        <TextBlock Grid.Row="2" Text="{Binding ChatListHeading}" Classes="muted" FontSize="12" Margin="10,0,0,10" local:SmoothVisibility.IsShown="{Binding ChatsSidebarOpen}" />
+        <ListBox Name="ConversationsList" Grid.Row="3" Width="{Binding ChatsBodyWidth}" HorizontalAlignment="Left" ItemsSource="{Binding VisibleConversations}" SelectedItem="{Binding Active}" local:SmoothVisibility.IsShown="{Binding ChatsSidebarOpen}" IsEnabled="{Binding NotBusy}" Background="Transparent" BorderThickness="0" ItemContainerTheme="{StaticResource ChatItemTheme}">
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <Grid ColumnDefinitions="22,*,Auto">
+              <Grid ColumnDefinitions="22,*,Auto,28">
                 <Path Classes="outline" Data="{StaticResource ChatIcon}" Width="18" Height="18" />
-                <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="13" Margin="13,0,8,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="2" Text="{Binding TimeLabel}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="13" Margin="10,0,6,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Title}" />
+                <TextBlock Grid.Column="2" Text="{Binding TimeLabel}" Classes="muted" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <Button Name="ChatRowMenuButton" Grid.Column="3" Classes="icon" Width="28" Height="28" MinWidth="28" MinHeight="28" Padding="4,0" VerticalAlignment="Center" ToolTip.Tip="{Binding Session.Text[ChatActionsLabel]}" AutomationProperties.Name="{Binding Session.Text[ChatActionsLabel]}">
+                  <TextBlock Text="⋮" FontSize="20" VerticalAlignment="Center" />
+                  <Button.Flyout>
+                    <MenuFlyout>
+                      <MenuItem Header="{Binding ArchiveActionLabel}" Command="{Binding ArchiveCommand}" />
+                      <MenuItem Header="{Binding Session.Text[DeleteChat]}" Command="{Binding DeleteCommand}" Classes="danger" />
+                    </MenuFlyout>
+                  </Button.Flyout>
+                </Button>
               </Grid>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
-        <StackPanel Grid.Row="4" Spacing="5" IsVisible="{Binding ChatsSidebarOpen}">
+        <StackPanel Grid.Row="4" Spacing="5" Width="{Binding ChatsBodyWidth}" HorizontalAlignment="Left" local:SmoothVisibility.IsShown="{Binding ChatsSidebarOpen}">
           <Button Name="ArchivesButton" Command="{Binding ToggleArchiveViewCommand}" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
             <StackPanel Orientation="Horizontal" Spacing="13"><Path Classes="outline" Data="{StaticResource ArchiveIcon}" Width="18" Height="18" /><TextBlock Text="{Binding ArchiveNavigationLabel}" FontSize="13" /></StackPanel>
-          </Button>
-          <Button Command="{Binding Active.Session.ShowContextCommand}" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-            <StackPanel Orientation="Horizontal" Spacing="13"><Path Classes="outline" Data="{StaticResource FolderIcon}" Width="18" Height="18" /><TextBlock Text="{Binding Text[FolderContext]}" FontSize="13" /></StackPanel>
           </Button>
           <Button Name="SettingsButton" Command="{Binding SettingsCommand}" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
             <StackPanel Orientation="Horizontal" Spacing="13"><Path Classes="outline" Data="{StaticResource SettingsIcon}" Width="18" Height="18" /><TextBlock Text="{Binding Text[Settings]}" FontSize="13" /></StackPanel>
           </Button>
-          <TextBlock Text="{Binding Text[ChatsMemoryHint]}" Classes="muted" FontSize="10" TextWrapping="Wrap" Margin="12,9,12,0" />
+          <TextBlock Text="{Binding Text[ChatsStorageHint]}" Classes="muted" FontSize="10" TextWrapping="Wrap" Margin="12,9,12,0" />
         </StackPanel>
       </Grid>
     </Border>
@@ -84,15 +92,15 @@
         </Grid>
 
         <Grid Grid.Row="1" DataContext="{Binding Active.Session}" Margin="14,0,14,12">
-          <Grid IsVisible="{Binding IsChatView}" RowDefinitions="*,Auto,Auto,Auto">
+          <Grid local:SmoothVisibility.IsShown="{Binding IsChatView}" RowDefinitions="*,Auto,Auto,Auto">
             <Grid ClipToBounds="True">
               <StackPanel IsVisible="{Binding ShowWelcome}" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400" Spacing="16" Margin="24">
                 <Path Data="{StaticResource ShieldIcon}" Classes="outline" Width="48" Height="48" Stroke="#369AFF" />
                 <TextBlock Text="{Binding Text[WelcomeTitle]}" FontSize="24" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Text[SimpleWelcomeHelp]}" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" LineHeight="22" />
-                <Button Content="{Binding Text[FolderContext]}" Command="{Binding ShowContextCommand}" HorizontalAlignment="Center" />
+                <Button Content="{Binding Text[FolderContext]}" Command="{Binding $parent[Window].DataContext.OpenContextOptionsCommand}" HorizontalAlignment="Center" />
               </StackPanel>
-              <ScrollViewer Name="ChatScroll" IsVisible="{Binding HasChat}" HorizontalScrollBarVisibility="Disabled">
+              <ScrollViewer Name="ChatScroll" IsVisible="{Binding HasChat}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="{Binding $parent[Window].DataContext.ChatScrollBarVisibility}">
                 <ItemsControl ItemsSource="{Binding Chat}" Margin="8,0">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -138,17 +146,12 @@
             </Grid>
           </Grid>
 
-          <Grid Name="ContextView" IsVisible="{Binding IsContextView}" RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="8,5">
+          <Grid Name="ContextView" local:SmoothVisibility.IsShown="{Binding IsContextView}" RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="8,5">
             <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
               <StackPanel Spacing="5"><TextBlock Text="{Binding Text[FolderContext]}" FontSize="20" FontWeight="SemiBold" /><TextBlock Text="{Binding Summary}" Classes="muted" FontSize="12" TextWrapping="Wrap" /></StackPanel>
               <Button Grid.Column="1" Content="{Binding Text[BackToChat]}" Classes="ghost" Command="{Binding ShowChatCommand}" />
             </Grid>
             <StackPanel Grid.Row="1" Spacing="10" Margin="0,0,0,14" IsEnabled="{Binding NotBusy}">
-              <Grid ColumnDefinitions="*,Auto,Auto">
-                <TextBox Name="FolderBox" Text="{Binding Folder}" Watermark="{Binding Text[FolderPath]}" ToolTip.Tip="{Binding Text[FolderTooltip]}" />
-                <Button Grid.Column="1" Command="{Binding BrowseCommand}" Margin="7,0,0,0" ToolTip.Tip="{Binding Text[FolderPickerTitle]}"><Path Classes="outline" Data="{StaticResource FolderIcon}" /></Button>
-                <Button Grid.Column="2" Content="{Binding Text[PrepareShort]}" Command="{Binding PrepareCommand}" Margin="7,0,0,0" />
-              </Grid>
               <TextBlock Text="{Binding Text[ContextHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
               <TextBlock Text="{Binding TrimmingSummary}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
@@ -156,13 +159,13 @@
             <CheckBox Grid.Row="3" IsChecked="{Binding ContextApproved}" IsEnabled="{Binding CanReview}" Margin="0,14,0,10"><TextBlock Text="{Binding Text[ApproveContext]}" TextWrapping="Wrap" FontSize="12" /></CheckBox>
             <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="7"><Button Content="{Binding Text[ReplacementsTab]}" Command="{Binding ShowReplacementsCommand}" Classes="ghost" /><Button Content="{Binding Text[FilesTab]}" Command="{Binding ShowFilesCommand}" Classes="ghost" /></StackPanel>
           </Grid>
-          <Grid IsVisible="{Binding IsReplacementsView}" RowDefinitions="Auto,*" Margin="8,5">
+          <Grid local:SmoothVisibility.IsShown="{Binding IsReplacementsView}" RowDefinitions="Auto,*" Margin="8,5">
             <StackPanel Spacing="10" Margin="0,0,0,14"><Button Content="{Binding Text[BackToChat]}" Command="{Binding ShowChatCommand}" Classes="ghost" HorizontalAlignment="Left" /><TextBlock Text="{Binding Text[ReplacementsHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" /></StackPanel>
             <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"><ItemsControl ItemsSource="{Binding Replacements}"><ItemsControl.ItemTemplate><DataTemplate>
               <Border Classes="card" Padding="12" Margin="0,0,0,7"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Placeholder}" FontFamily="Consolas,Menlo,monospace" FontSize="11" /><TextBlock Grid.Column="1" Text="{Binding Category}" Classes="muted" FontSize="11" Margin="12,0,0,0" /></Grid></Border>
             </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
           </Grid>
-          <Grid IsVisible="{Binding IsFilesView}" RowDefinitions="Auto,*" Margin="8,5">
+          <Grid local:SmoothVisibility.IsShown="{Binding IsFilesView}" RowDefinitions="Auto,*" Margin="8,5">
             <StackPanel Spacing="10" Margin="0,0,0,14"><Button Content="{Binding Text[BackToChat]}" Command="{Binding ShowChatCommand}" Classes="ghost" HorizontalAlignment="Left" /><TextBlock Text="{Binding Text[FilesHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" /></StackPanel>
             <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"><ItemsControl ItemsSource="{Binding Files}"><ItemsControl.ItemTemplate><DataTemplate>
               <Border Classes="card" Padding="12" Margin="0,0,0,7"><StackPanel Spacing="5"><TextBlock Text="{Binding Alias}" FontSize="12" FontWeight="SemiBold" /><SelectableTextBlock Text="{Binding LocalRelativePath}" TextWrapping="Wrap" FontSize="11" Classes="muted" /></StackPanel></Border>
@@ -178,14 +181,24 @@
       </Grid>
     </Border>
 
-    <Border Name="ModelsSidebar" Grid.Column="4" Classes="panel" Padding="{Binding ModelsSidebarPadding}">
+    <Border Name="ModelsSidebar" Grid.Column="4" Classes="panel" Width="{Binding ModelsSidebarPixels}" ClipToBounds="True" Padding="{Binding ModelsSidebarPadding}">
+      <Border.Transitions><Transitions><DoubleTransition Property="Width" Duration="0:0:0.36" Easing="CubicEaseInOut" /><ThicknessTransition Property="Padding" Duration="0:0:0.36" Easing="CubicEaseInOut" /></Transitions></Border.Transitions>
       <Grid RowDefinitions="Auto,*,Auto">
         <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
-          <TextBlock Text="{Binding Text[ChatSettings]}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" IsVisible="{Binding ModelsSidebarOpen}" />
+          <TextBlock Text="{Binding Text[ChatSettings]}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" local:SmoothVisibility.IsShown="{Binding ModelsSidebarOpen}" />
           <Button Name="ToggleModelsButton" Grid.Column="1" Command="{Binding ToggleModelsCommand}" Classes="icon" ToolTip.Tip="{Binding ModelsToggleTip}"><Grid><Path Classes="outline" Data="{StaticResource CloseIcon}" Width="15" Height="15" IsVisible="{Binding ModelsSidebarOpen}" /><TextBlock Text="‹" IsVisible="{Binding !ModelsSidebarOpen}" /></Grid></Button>
         </Grid>
-        <ScrollViewer Grid.Row="1" IsVisible="{Binding ModelsSidebarOpen}" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer Name="ModelSettingsScroll" Grid.Row="1" Width="{Binding ModelsBodyWidth}" HorizontalAlignment="Left" local:SmoothVisibility.IsShown="{Binding ModelsSidebarOpen}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
           <StackPanel Spacing="24" DataContext="{Binding Active.Session}" IsEnabled="{Binding NotBusy}">
+            <StackPanel Name="FolderContextOptions" Spacing="10">
+              <TextBlock Text="{Binding Text[FolderContext]}" Classes="label" />
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox Name="FolderBox" Text="{Binding Folder}" Watermark="{Binding Text[FolderPath]}" ToolTip.Tip="{Binding Text[FolderTooltip]}" />
+                <Button Grid.Column="1" Command="{Binding BrowseCommand}" Margin="7,0,0,0" ToolTip.Tip="{Binding Text[FolderPickerTitle]}"><Path Classes="outline" Data="{StaticResource FolderIcon}" /></Button>
+              </Grid>
+              <Grid ColumnDefinitions="*,Auto"><Button Content="{Binding Text[PrepareShort]}" Command="{Binding PrepareCommand}" HorizontalAlignment="Stretch" /><Button Grid.Column="1" Content="{Binding Text[Review]}" Command="{Binding ShowContextCommand}" Classes="ghost" Margin="7,0,0,0" /></Grid>
+              <TextBlock Text="{Binding Summary}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+            </StackPanel>
             <StackPanel Spacing="10">
               <TextBlock Text="{Binding Text[LocalCleanerTitle]}" Classes="label" />
               <Expander Classes="model" Name="CleanerOptions" IsExpanded="{Binding CleanerModelExpanded}">
@@ -238,8 +251,9 @@
             </Border>
           </StackPanel>
         </ScrollViewer>
-        <StackPanel Grid.Row="2" Spacing="12" IsVisible="{Binding ModelsSidebarOpen}" Margin="0,18,0,0">
+        <StackPanel Grid.Row="2" Spacing="9" Width="{Binding ModelsBodyWidth}" HorizontalAlignment="Left" local:SmoothVisibility.IsShown="{Binding ModelsSidebarOpen}" Margin="0,14,0,0">
           <Border BorderBrush="#1C3042" BorderThickness="0,1,0,0" Margin="0,0,0,3" />
+          <Button Name="ExportChatButton" Content="{Binding Text[ExportChat]}" Command="{Binding ExportChatCommand}" Classes="ghost" HorizontalAlignment="Stretch" />
           <Button Name="ArchiveChatButton" Command="{Binding ArchiveChatCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,13" Background="Transparent">
             <Grid ColumnDefinitions="25,*,Auto"><Path Classes="outline" Data="{StaticResource ArchiveIcon}" /><StackPanel Grid.Column="1" Spacing="4" Margin="12,0"><TextBlock Text="{Binding ArchiveActionLabel}" FontSize="13" /><TextBlock Text="{Binding ArchiveActionHelp}" Classes="muted" FontSize="11" TextWrapping="Wrap" /></StackPanel><TextBlock Grid.Column="2" Text="›" Classes="muted" VerticalAlignment="Center" /></Grid>
           </Button>
@@ -249,5 +263,12 @@
         </StackPanel>
       </Grid>
     </Border>
+  </Grid>
+  <Border Name="StorageNotification" Classes="card" Margin="24" Padding="16,12" MaxWidth="640" VerticalAlignment="Bottom" HorizontalAlignment="Center" IsVisible="{Binding HasStorageMessage}">
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding StorageMessage}" TextWrapping="Wrap" VerticalAlignment="Center" /><Button Grid.Column="1" Content="×" Classes="icon" Command="{Binding DismissStorageMessageCommand}" /></Grid>
+  </Border>
+  <Border Name="SettingsBackdrop" Background="#B800050C" Opacity="{Binding SettingsShade}" IsHitTestVisible="{Binding SettingsOpen}">
+    <Border.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseInOut" /></Transitions></Border.Transitions>
+  </Border>
   </Grid>
 </Window>

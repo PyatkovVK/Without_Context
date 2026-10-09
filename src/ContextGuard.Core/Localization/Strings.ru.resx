@@ -338,7 +338,7 @@
     <value>Отправлен обезличенный контекст · модель отвечает…</value>
   </data>
   <data name="StatusReplyReceived" xml:space="preserve">
-    <value>Ответ получен. История и таблица замен хранятся только в памяти этой сессии.</value>
+    <value>Ответ получен. Исходные чувствительные данные остаются в памяти этой сессии.</value>
   </data>
   <data name="StatusReviewContext" xml:space="preserve">
     <value>Проверьте контекст справа и подтвердите его. Автоматическая проверка может пропустить чувствительные данные.</value>
@@ -421,9 +421,6 @@
   <data name="ChatNoContext" xml:space="preserve">
     <value>Контекст не подготовлен</value>
   </data>
-  <data name="ChatsMemoryHint" xml:space="preserve">
-    <value>Чаты находятся в памяти до закрытия приложения.</value>
-  </data>
   <data name="HideChats" xml:space="preserve">
     <value>Свернуть чаты</value>
   </data>
@@ -468,9 +465,6 @@
   </data>
   <data name="SettingsRulesHelp" xml:space="preserve">
     <value>После изменения правил или лимита подготовьте и проверьте контекст этого чата заново.</value>
-  </data>
-  <data name="MemoryOnlyHelp" xml:space="preserve">
-    <value>Контекст, ключи и диалоги остаются в памяти и не сохраняются на диск.</value>
   </data>
   <data name="ClearAllChats" xml:space="preserve">
     <value>Очистить все чаты и ключи</value>
@@ -630,5 +624,68 @@
   </data>
   <data name="StatusTrimming" xml:space="preserve">
     <value>Локальное обрезание контекста…</value>
+  </data>
+  <data name="Assistant" xml:space="preserve">
+    <value>Ассистент</value>
+  </data>
+  <data name="Review" xml:space="preserve">
+    <value>Просмотр</value>
+  </data>
+  <data name="ChatsStorageHint" xml:space="preserve">
+    <value>Чаты сохраняются локально. Экспорт — в настройках чата.</value>
+  </data>
+  <data name="ChatStorageFolder" xml:space="preserve">
+    <value>Папка хранения чатов</value>
+  </data>
+  <data name="ChatStorageHelp" xml:space="preserve">
+    <value>Обезличенные чаты и контекст сохраняются локально. API-ключи и исходные значения остаются в памяти. Экспорт включает JSON и Markdown.</value>
+  </data>
+  <data name="ExportChat" xml:space="preserve">
+    <value>Экспортировать чат</value>
+  </data>
+  <data name="ExportAllChats" xml:space="preserve">
+    <value>Экспорт всех чатов</value>
+  </data>
+  <data name="ExportFolderTitle" xml:space="preserve">
+    <value>Выберите папку для экспорта чатов</value>
+  </data>
+  <data name="ChatExportComplete" xml:space="preserve">
+    <value>Экспорт завершён. JSON и Markdown сохранены в выбранную папку.</value>
+  </data>
+  <data name="StatusReopened" xml:space="preserve">
+    <value>Чат восстановлен. Выберите модель и проверьте сохранённый контекст, чтобы продолжить.</value>
+  </data>
+  <data name="ChatStorageUnsafePath" xml:space="preserve">
+    <value>Для хранения чатов нельзя использовать символические ссылки и перенаправленные папки.</value>
+  </data>
+  <data name="ChatStorageInvalid" xml:space="preserve">
+    <value>Сохранённый чат имеет неверный или неподдерживаемый формат. Существующие файлы оставлены без изменений.</value>
+  </data>
+  <data name="ChatStorageLimit" xml:space="preserve">
+    <value>Достигнут лимит хранения (200 чатов, 512 сообщений в чате, 8 МиБ на файл, 64 МиБ всего). Экспортируйте или удалите старые чаты.</value>
+  </data>
+  <data name="ChatStorageReadFailed" xml:space="preserve">
+    <value>Не удалось открыть сохранённые чаты. Проверьте папку хранения и права доступа. Существующие файлы оставлены без изменений.</value>
+  </data>
+  <data name="ChatStorageWriteFailed" xml:space="preserve">
+    <value>Не удалось сохранить чаты. Проверьте свободное место и права доступа к папке хранения.</value>
+  </data>
+  <data name="ChatExportOwnFolder" xml:space="preserve">
+    <value>Выберите папку экспорта за пределами папки хранения чатов приложения.</value>
+  </data>
+  <data name="ChatExportFailed" xml:space="preserve">
+    <value>Не удалось экспортировать чаты. Проверьте выбранную папку и свободное место.</value>
+  </data>
+  <data name="ChatStorageCloseFailed" xml:space="preserve">
+    <value>Не удалось сохранить последние изменения. Оставьте приложение открытым, чтобы устранить проблему, или закройте без сохранения.</value>
+  </data>
+  <data name="KeepOpen" xml:space="preserve">
+    <value>Оставить открытым</value>
+  </data>
+  <data name="CloseWithoutSaving" xml:space="preserve">
+    <value>Закрыть без сохранения</value>
+  </data>
+  <data name="ChatActionsLabel" xml:space="preserve">
+    <value>Действия с чатом</value>
   </data>
 </root>

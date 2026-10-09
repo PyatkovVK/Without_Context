@@ -1,26 +1,25 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="ContextGuard.App.SettingsWindow" Title="{Binding Text[Settings]}"
-        Width="560" Height="670" MinWidth="480" MinHeight="560" CanResize="False"
+        x:Class="ContextGuard.App.SettingsWindow" Title="{Binding Text[Settings]}" Icon="/images/icon.png"
+        Width="580" Height="710" MinWidth="580" MinHeight="710" CanResize="False"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
-  <Grid RowDefinitions="Auto,*,Auto" Margin="26">
-    <StackPanel Spacing="6" Margin="0,0,0,22">
+  <Grid Name="SettingsContent" RowDefinitions="Auto,*,Auto" Margin="24,20">
+    <StackPanel Spacing="5" Margin="0,0,0,16">
       <TextBlock Text="{Binding Text[Settings]}" FontSize="23" FontWeight="SemiBold" />
-      <TextBlock Text="{Binding Text[SettingsHelp]}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding Text[SettingsHelp]}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
     </StackPanel>
-    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-      <StackPanel Spacing="22" IsEnabled="{Binding NotBusy}">
-        <Grid ColumnDefinitions="*,190">
+      <StackPanel Grid.Row="1" Spacing="13" IsEnabled="{Binding NotBusy}">
+        <Grid ColumnDefinitions="*,245">
           <TextBlock Text="{Binding Text[Language]}" Classes="label" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" Name="LanguageSelector" ItemsSource="{Binding Languages}" SelectedIndex="{Binding LanguageIndex}" />
         </Grid>
-        <StackPanel Spacing="20" DataContext="{Binding Active.Session}">
-          <StackPanel Spacing="9">
-            <TextBlock Text="{Binding Text[ProtectionSettings]}" Classes="label" />
-            <ComboBox Name="ProfileSelector" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}" />
-          </StackPanel>
-          <StackPanel Spacing="9">
+        <StackPanel Spacing="13" DataContext="{Binding Active.Session}">
+          <Grid ColumnDefinitions="*,245">
+            <TextBlock Text="{Binding Text[ProtectionSettings]}" Classes="label" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" Name="ProfileSelector" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}" />
+          </Grid>
+          <StackPanel Spacing="7">
             <TextBlock Text="{Binding Text[CustomValues]}" Classes="label" />
-            <TextBox Text="{Binding CustomTerms}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="105" MaxHeight="145" Watermark="{Binding Text[CustomValuesHint]}" />
+            <TextBox Text="{Binding CustomTerms}" AcceptsReturn="True" TextWrapping="Wrap" Height="80" Watermark="{Binding Text[CustomValuesHint]}" />
             <TextBlock Text="{Binding Text[CustomValuesHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
           </StackPanel>
           <Grid ColumnDefinitions="*,120">
@@ -28,16 +27,19 @@
             <NumericUpDown Grid.Column="1" Value="{Binding ContextLimit}" Minimum="4000" Maximum="96000" Increment="4000" FormatString="0" ShowButtonSpinner="False" />
           </Grid>
           <CheckBox IsChecked="{Binding RestoreLocally}" Content="{Binding Text[RestoreLocally]}" FontSize="12" />
-          <TextBlock Text="{Binding Text[SettingsRulesHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
-        <Border BorderBrush="#303238" BorderThickness="0,1,0,0" Padding="0,17,0,0">
+        <Border BorderBrush="#243B4F" BorderThickness="0,1,0,0" Padding="0,13,0,0">
           <StackPanel Spacing="8">
-            <TextBlock Text="{Binding Text[MemoryOnlyHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
-            <Button Content="{Binding Text[ClearAllChats]}" Classes="ghost" Command="{Binding ClearAllCommand}" HorizontalAlignment="Left" />
+            <TextBlock Text="{Binding Text[ChatStorageFolder]}" Classes="label" />
+            <TextBox Name="StorageFolderBox" Text="{Binding StorageFolder}" IsReadOnly="True" FontSize="11" />
+            <TextBlock Text="{Binding Text[ChatStorageHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,Auto" Margin="0,3,0,0">
+              <Button Content="{Binding Text[ExportAllChats]}" Command="{Binding ExportAllCommand}" HorizontalAlignment="Left" />
+              <Button Grid.Column="1" Content="{Binding Text[ClearAllChats]}" Classes="ghost" Command="{Binding ClearAllCommand}" />
+            </Grid>
           </StackPanel>
         </Border>
       </StackPanel>
-    </ScrollViewer>
-    <Button Grid.Row="2" Content="{Binding Text[Done]}" Click="Done" Classes="primary" HorizontalAlignment="Right" MinWidth="90" Margin="0,20,0,0" />
+    <Button Grid.Row="2" Content="{Binding Text[Done]}" Click="Done" Classes="primary" HorizontalAlignment="Right" MinWidth="90" Margin="0,12,0,0" />
   </Grid>
 </Window>

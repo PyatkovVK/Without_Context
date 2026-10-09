@@ -12,7 +12,7 @@ Folder → local collection and anonymization → local trimming → review
        → reply with optional local restoration of values
 ```
 
-Original files stay unchanged. The app does not save chat history, the API key or the replacement map to disk. The chat model receives a system instruction, reviewed context with file aliases, and anonymized conversation history.
+Original files stay unchanged. Anonymized chat history and context are saved locally; API keys, original values and the replacement map stay in memory. The chat model receives a system instruction, reviewed context with file aliases, and anonymized conversation history.
 
 ## Features
 
@@ -22,11 +22,12 @@ Original files stay unchanged. The app does not save chat history, the API key o
 - Custom values to replace, such as companies, projects or surnames, one value per line.
 - Optional local Ollama agent for additional sensitive entity detection.
 - Review and edit both context and messages before sending.
-- Streaming replies, cancellation, independent chats in memory and session cleanup.
+- Streaming replies, cancellation, independent chats and session cleanup.
 - Collapsible chat and model sidebars, with preferences in a modal Settings window.
 - Separate connection indicators for the cleaner and assistant models.
 - Minimal, moderate, maximum and custom context trimming, with recent-message retention.
-- Archive and restore chats in memory.
+- Automatically save chats and archives in a separate local folder, and restore them after restarting.
+- Export one chat or all chats as JSON and Markdown.
 - Formatted replies with headings, bold text, lists, code blocks and tables.
 - Local mapping between file aliases and real files, and optional restoration of values in replies.
 - English and Russian interface text, including labels, hints, progress messages and errors.
@@ -57,22 +58,61 @@ Both scripts disable .NET and Avalonia build telemetry. The Windows script uses 
 
 Linux needs an X11 desktop environment and system libraries for X11, fontconfig and ICU. See the platform requirements for [Avalonia 11](https://v11.docs.avaloniaui.net/docs/overview/supported-platforms/) and [.NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md). Startup has been verified on Windows; Linux Mint and macOS startup have not yet been tested.
 
+## macOS and Linux application icons
+
+All logo variants and platform icons are in `src/ContextGuard.App/images`, which contains only image files. The selected logo is `icon.png` for the interface and window, `icon.ico` for Windows, `icon.icns` for macOS, and `icon-256.png` for the Linux launcher. The same logo appears beside the application name on every platform.
+
+On macOS, `sh scripts/run.sh` builds and opens a native `.app` bundle so Finder and the Dock use the application icon. To prepare a Release bundle on an Intel or Apple Silicon Mac:
+
+```sh
+sh scripts/package.sh
+```
+
+The result is `artifacts/osx-x64/Without Context.app` or `artifacts/osx-arm64/Without Context.app`. You can move the bundle to Applications. Packaging follows the [Avalonia macOS bundle structure](https://docs.avaloniaui.net/docs/deployment/macos) and applies an ad-hoc signature when run on macOS.
+
+On Linux Mint, publish the app and register its launcher for the current user:
+
+```sh
+sh scripts/package.sh
+sh scripts/install-linux.sh artifacts/linux-x64
+```
+
+For ARM64 Linux, use `artifacts/linux-arm64` in the second command. Registration puts the launcher and icon in the user's XDG data directory, normally `~/.local/share/applications` and `~/.local/share/icons`. The launcher points to the published directory, so keep that directory in place or run registration again after moving it. Its `StartupWMClass` matches the application's X11 class to associate the running window with the launcher.
+
+The published Linux directory also includes `install.sh` and its launcher template. After moving the whole directory to another Linux machine, run `sh install.sh` from that directory to register the icon and launcher there.
+
+You can also select a target explicitly, for example `sh scripts/package.sh osx-arm64` or `sh scripts/package.sh linux-x64`. Published applications require .NET Runtime 10 on the destination machine. Native Finder/Dock and Linux desktop display still need verification on their respective operating systems.
+
+When a macOS bundle is created on Windows, restore its executable permission on the Mac with `chmod +x "Without Context.app/Contents/MacOS/WithoutContext"`, or build it directly on the Mac with `sh scripts/package.sh`. The Linux launcher installer restores the executable permission itself.
+
 ## Your first conversation
 
 1. Open **Settings** in the left sidebar to choose the interface language, anonymization profile and custom values to replace.
-2. Open **Folder context** and select a folder containing documents or source code.
+2. In the right sidebar's **Folder context** section, select a folder containing documents or source code.
 3. In the right **Chat settings** panel, expand **Local privacy model** to optionally enable a downloaded Ollama cleaner. Expand **Model for your requests** to select the assistant:
    - **Ollama:** the default address is `http://localhost:11434`. Download a model, refresh the list or enter its name manually.
    - **API:** enter a full HTTPS endpoint such as `https://<provider>/v1/chat/completions`, a model ID and an API key if required. Bearer authorization, SSE and ordinary JSON responses are supported.
 4. Select the **Context trimming** mode. Custom instructions require an enabled downloaded local cleaner.
-5. In **Folder context**, click **Prepare context**, review the anonymized, reduced text and confirm the review. Use **Back to chat** to return to the conversation.
+5. In the right sidebar, click **Prepare context**. Review the anonymized, reduced text in the center and confirm the review. Use **Review** to reopen the preview and **Back to chat** to return to the conversation.
 6. Write your task and click the arrow or press Ctrl+Enter to **Review message**. Review the preview, then click **Send**.
 
-The MVP interface follows the supplied three-panel design: a dark navy chat list, a central conversation with right-aligned user bubbles and a bottom composer, and compact model cards and trimming controls on the right. Both sidebars collapse. The conversation title menu opens the chat, context, replacement map and file list. Model cards expand to reveal connection details; general preferences open in a modal window.
+The MVP interface follows the supplied three-panel design: a dark navy chat list, a central conversation with right-aligned user bubbles and a bottom composer, and folder context, model cards and trimming controls on the right. Both sidebars collapse with eased width transitions. The conversation title menu opens the chat, context, replacement map and file list. Model cards expand to reveal connection details; general preferences open in a modal window with a dimmed, inactive background and no page scrollbar.
 
-Use **Archive chat** to hide a conversation, **Archive** in the left sidebar to open it, and **Restore chat** to return it to the main list. Archiving preserves that chat's context, messages, model settings and draft. Deleting releases its state; clearing all or closing the app releases active and archived chats. The archive is kept only in RAM and does not survive a restart.
+Use the **⋮** menu on any chat in the left sidebar to archive or delete that particular chat. Archived rows offer **Restore chat**. Actions on an inactive chat preserve your current conversation and draft. **Archive** at the bottom of the sidebar opens the archive. Archiving preserves that chat's live state while the app is open, and its anonymized transcript, context and archive membership across restarts. Deleting a chat or choosing **Clear all chats and keys** also removes the saved chats. Closing the app waits for pending saves, then releases sensitive session memory.
 
-Each chat owns its context, messages and replacement map. New chats copy model, protection and trimming configuration but require their own context preparation. Titles use the first anonymized user message, with a numbered fallback for empty chats.
+## Local storage and export
+
+Chats are stored as versioned JSON files with opaque IDs in the operating system's local application-data folder, under **WithoutContext/chats**. On Windows this is `%LOCALAPPDATA%\WithoutContext\chats`. The exact path is displayed in **Settings → Chat storage folder**, where you can select and copy it.
+
+**Export chat** at the bottom of the right sidebar exports the selected conversation. **Settings → Export all chats** also includes archived chats. Choose an output folder using the system dialog; each chat produces `chat-<opaque-id>.json` and `chat-<opaque-id>.md`. JSON includes the title, anonymized context, completed message pairs, timestamps and archive flag. Markdown provides the same title with a readable transcript and context. Exported copies remain in that folder after you delete a chat in the application. They are also ignored by Git when exported into this repository. Version 2 adds the title; existing version 1 chats without it remain readable.
+
+Stored and exported data uses the anonymized messages, including when local display restores original values. Connection settings, API keys, original folder/file paths, original-value mappings, custom replacement lists, unsent drafts, incomplete responses and review approval are excluded. Edited context is excluded until a new safe snapshot is available. These are plain-text files, not encrypted files; the selected protection profile and your review still determine what information is retained.
+
+After restarting, chats reopen with anonymized text and a fresh replacement map. Select the assistant model, re-enter credentials if needed, optionally re-enable and configure the local cleaner, then use **Review** in the right sidebar and confirm the saved context before continuing. Original values cannot be restored from old placeholders because the original map is deliberately not saved. Initial model configuration preserves the reopened transcript; preparing new folder context or editing context resets it as usual.
+
+Storage limits are 200 chats, 512 completed messages per chat, 8 MiB per JSON file and 64 MiB in total. Invalid or unsupported saved files produce a visible error without replacing existing files. Save failures are shown in the main window; if pending changes cannot be saved when closing, you can keep the app open or explicitly close without saving. Export or delete old conversations before reaching the limits.
+
+Each chat owns its context, messages and replacement map. New chats copy model, protection and trimming configuration but require their own context preparation. After the first successful reply, a short title describes the user's goal. The selected assistant refines it in the background with one short additional request containing at most 2,000 characters of the anonymized task and 4,000 characters of the already reviewed anonymized context. The output is anonymized again and limited to 64 characters. Failure keeps the local title without affecting the completed reply. Names stay stable across follow-up messages and language changes, survive restart and appear in exports. Empty chats use a numbered name; clearing history or preparing new context resets it.
 
 Changing the folder, anonymization rules, trimming mode or active custom instructions requires preparing context again. Editing context revokes approval and clears the conversation. Edits to a message preview are also checked before sending. Changing the interface language preserves these settings, context, approval, message drafts and chat history; it does not translate your documents or existing model replies. The language choice applies to the current session and starts in English on the next launch.
 
@@ -129,9 +169,12 @@ tests/
   ContextGuard.UiTests/   interface scenarios without a visible window
 scripts/                 application launch scripts for Windows and macOS/Linux
 licenses/                third-party licenses
+requirements/           product requirements in English, grouped by interface area
 ```
 
 To update a translation, edit `Strings.resx` for English or `Strings.ru.resx` for Russian in `src/ContextGuard.Core/Localization/`. Keep resource keys and format placeholders consistent across both files.
+
+Product behavior and acceptance criteria are described in [the requirements index](requirements/README.md). The left-sidebar folder contains separate documents for new chats, recent chats, names, the ⋮ menu, archives, settings and collapsing. Keep the relevant requirement document in sync when changing a feature; use fictional examples and keep private inputs out of these files.
 
 Local SDKs, dependencies, builds, screenshots and temporary files are kept in ignored `.tools/`, `.dotnet-home/`, `artifacts/`, `bin/`, `obj/` and `.test-work/` directories.
 

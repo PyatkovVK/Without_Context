@@ -25,7 +25,7 @@ internal static class Program
         Directory.CreateDirectory(folderA); Directory.CreateDirectory(folderB);
         File.WriteAllText(Path.Combine(folderA, "example.md"), "# Project\nContact user@example.com\npassword=demo-sensitive-password\n");
         File.WriteAllText(Path.Combine(folderB, "other.md"), "Second workspace: second@example.com\npassword=second-sensitive-password\n");
-        int networkCalls = 0, generatedChats = 0, detectorCalls = 0;
+        int networkCalls = 0, generatedChats = 0, detectorCalls = 0, generatedTitles = 0;
         bool cloudCleaner = false, rejectApi = false, delayChecks = false;
         var payloads = new List<string>();
         using var workspace = new WorkspaceViewModel(() => new ModelClient(new StubHandler(async (request, ct) =>
@@ -51,6 +51,15 @@ internal static class Program
             }
             string data = await request.Content!.ReadAsStringAsync(ct);
             using var document = JsonDocument.Parse(data);
+            if (document.RootElement.GetProperty("messages")[0].GetProperty("content").GetString()!.StartsWith("Create a short chat title", StringComparison.Ordinal))
+            {
+                generatedTitles++;
+                string safeInput = document.RootElement.GetProperty("messages")[1].GetProperty("content").GetString()!;
+                True(!safeInput.Contains("user@example.com") && !safeInput.Contains("demo-sensitive-password") && !safeInput.Contains("second-test-key"), "Title request contains only anonymized task and context");
+                string title = safeInput.Contains("Second chat task") ? "Second workspace task" : "Product launch plan";
+                return path == "/api/chat" ? Response(JsonSerializer.Serialize(new { message = new { content = title } })) :
+                    Response(JsonSerializer.Serialize(new { choices = new[] { new { message = new { content = title } } } }));
+            }
             if (document.RootElement.TryGetProperty("format", out _))
             {
                 detectorCalls++;
@@ -81,13 +90,19 @@ internal static class Program
             True(vm.TrimmingMode == ContextTrimmingMode.Minimal, "Trimming radio changes the real setting");
             vm.ModerateTrimming = true;
             SaveFrame(window, "start");
-            workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); Flush();
+            workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations();
             SaveFrame(window, "collapsed");
             True(window.FindControl<Border>("ChatsSidebar")!.Bounds.Width == 56 && window.FindControl<Border>("ModelsSidebar")!.Bounds.Width == 56, "Both sidebars collapse");
-            workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); Flush();
+            workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations();
 
             var settings = OpenSettings(window, workspace);
             True(settings.IsVisible && settings.Owner == window, "Settings open as an owned modal window");
+            True(workspace.SettingsOpen && !window.FindControl<Grid>("WorkspaceSurface")!.IsHitTestVisible &&
+                window.FindControl<Border>("SettingsBackdrop")!.Opacity > 0.99, "Settings dim and block background input, including scrolling");
+            True(window.FindControl<ScrollViewer>("ChatScroll")!.VerticalScrollBarVisibility == Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
+                "Background chat scrollbar is hidden while settings are open");
+            True(!settings.GetVisualDescendants().OfType<ScrollViewer>().Any(s => s.Content is StackPanel), "Settings have no page scroll container");
+            True(window.FindControl<TextBox>("FolderBox")!.GetVisualAncestors().Contains(window.FindControl<Border>("ModelsSidebar")!), "Folder context selection is in the right sidebar");
             var languageSelector = settings.FindControl<ComboBox>("LanguageSelector")!;
             True(languageSelector.SelectedIndex == 0 && settings.FindControl<ComboBox>("ProfileSelector")!.SelectedIndex == 0, "Default selections render in settings");
             SaveFrame(settings, "settings");
@@ -95,7 +110,7 @@ internal static class Program
             True(workspace.LanguageIndex == 1 && vm.LanguageIndex == 1 && VisibleText(window, "Начните с вашей папки"), "Language selection applies to the workspace");
             languageSelector.SelectedIndex = 0; Flush();
             vm.ProfileIndex = 1; vm.CustomTerms = "cleanup-only-private-value";
-            settings.Close(); Flush();
+            settings.Close(); SettleAnimations();
             True(!window.OwnedWindows.Any(), "Closing settings releases the owned dialog");
 
             vm.Folder = folderA;
@@ -119,11 +134,13 @@ internal static class Program
             settings.FindControl<ComboBox>("LanguageSelector")!.SelectedIndex = 1; Flush();
             True(vm.ContextApproved && vm.HasPending && vm.CanCompose && vm.ContextText == reviewedContext && vm.PendingText == reviewedMessage && vm.Prompt == draft, "Language switch preserves approval and drafts");
             True(vm.ProfileIndex == 1 && vm.LocalModel == "demo-local" && vm.Replacements.Select(replacement => replacement.Placeholder).SequenceEqual(placeholders), "Language switch preserves model and replacement map");
-            settings.Close(); Flush();
+            settings.Close(); SettleAnimations();
             SaveFrame(window, "message-ru");
             workspace.LanguageIndex = 0;
             vm.SendCommand.Execute(null); Wait(vm);
+            WaitTask(vm.TitleUpdate);
             True(vm.Chat.Count == 2 && generatedChats == 1 && vm.ChatConnectionState == ConnectionState.Connected, "Successful reply updates the assistant signal");
+            True(first.Title == "Product launch plan" && generatedTitles == 1, "A completed chat is named for its goal, rather than copying the opening message");
             SaveFrame(window, "chat");
             True(window.GetVisualDescendants().OfType<ReplyContent>().Any(view => view.Text.Contains("Product launch roadmap")), "Model replies use formatted Markdown presentation");
             window.Height = 1086; Flush(); SaveFrame(window, "mvp-design"); window.Height = 920; Flush();
@@ -175,7 +192,7 @@ internal static class Program
             CancellationToken closingProbeToken = default;
             var closingClient = new ModelClient(new StubHandler((_, token) =>
             { closingProbeToken = token; return probeCompletion.Task; }));
-            using var closingVm = new MainViewModel(closingClient, new ContextPreparationService(new FolderCollector(), closingClient));
+            using var closingVm = new MainViewModel(closingClient, new ContextPreparationService(new FolderCollector(), closingClient), new ConversationTitleService(closingClient));
             closingVm.LocalModel = "demo-local"; closingVm.ApiKey = "closing-only-test-key";
             closingVm.CustomTerms = "closing-only-private-value"; closingVm.Prompt = "closing-only-draft";
             closingVm.CheckChatCommand.Execute(null); Flush();
@@ -199,8 +216,25 @@ internal static class Program
             secondVm.ProviderIndex = 1; secondVm.ApiEndpoint = "https://api.example.com/v1/chat/completions"; secondVm.ApiModel = "demo-remote"; secondVm.ApiKey = "second-test-key";
             secondVm.Folder = folderB; secondVm.PrepareCommand.Execute(null); Wait(secondVm); secondVm.ContextApproved = true;
             secondVm.Prompt = "Second chat task"; secondVm.PreviewPromptCommand.Execute(null); Wait(secondVm); secondVm.SendCommand.Execute(null); Wait(secondVm);
+            WaitTask(secondVm.TitleUpdate);
             string secondPayload = Decode(payloads[^1]);
             True(!secondPayload.Contains("First chat task") && !secondPayload.Contains("Unsent first chat draft") && !secondPayload.Contains(firstPlaceholder), "Another chat's messages and placeholders stay out of requests");
+            var menu = OpenRowMenu(window, first);
+            True(menu.Items.OfType<MenuItem>().First().Command == first.ArchiveCommand, "Sidebar menu is bound to its own chat");
+            menu.Items.OfType<MenuItem>().First().Command!.Execute(null); menu.Hide(); Flush();
+            True(first.IsArchived && workspace.Active == second && secondVm.Chat.Count == 2, "Archiving an inactive chat preserves the active conversation");
+            workspace.ToggleArchiveViewCommand.Execute(null); Flush();
+            menu = OpenRowMenu(window, first);
+            True((string)menu.Items.OfType<MenuItem>().First().Header! == "Restore chat", "Archived rows offer restore");
+            menu.Items.OfType<MenuItem>().First().Command!.Execute(null); menu.Hide(); Flush();
+            True(!first.IsArchived && workspace.Active == first && !workspace.ShowingArchive, "Sidebar restore returns the active archived chat to recent chats");
+            workspace.NewChatCommand.Execute(null); Flush();
+            var temporary = workspace.Active!; temporary.Session.Prompt = "Unsent disposable draft";
+            workspace.Active = second; Flush();
+            menu = OpenRowMenu(window, temporary);
+            menu.Items.OfType<MenuItem>().Last().Command!.Execute(null); menu.Hide(); Flush();
+            True(workspace.Active == second && !workspace.Conversations.Contains(temporary) && temporary.Session.Prompt == "" && !temporary.DeleteCommand.CanExecute(null),
+                "Deleting an inactive chat from its menu releases only that chat and disables stale actions");
             var chatList = window.FindControl<ListBox>("ConversationsList")!;
             chatList.SelectedItem = first; Flush();
             True(workspace.Active == first && vm.Chat.Count == 2 && vm.ContextText == firstContext && vm.Prompt == "Unsent first chat draft" && vm.ContextApproved, "Sidebar selection restores the original chat intact");
@@ -243,7 +277,7 @@ internal static class Program
             settings = OpenSettings(window, workspace);
             workspace.ClearAllCommand.Execute(null); Flush();
             True(settings.FindControl<ComboBox>("ProfileSelector")!.SelectedIndex == 0, "Clearing all resets the active settings form");
-            settings.Close(); Flush();
+            settings.Close(); SettleAnimations();
             True(workspace.Conversations.Count == 1 && !workspace.Active!.Session.Ready && workspace.Active.Session.ApiKey == "" &&
                 secondVm.ApiKey == "" && workspace.ArchivedCount == 0, "Clear all also releases archived credentials and context");
             var cleanVm = workspace.Active?.Session ?? throw new Exception("Clear all must leave an active chat");
@@ -255,23 +289,139 @@ internal static class Program
             True(cleanVm.Ready && !cleanVm.ContextApproved && cleanVm.ContextText.Length <= ContextReducer.TargetCharacters(cleanVm.ContextLimit, cleanVm.TrimmingMode),
                 "Custom local trimming produces bounded context that still requires approval");
             workspace.ClearAllCommand.Execute(null); Flush();
-            window.Width = 1000; window.Height = 720; Flush();
+            window.Width = 1000; window.Height = 720; SettleAnimations();
             SaveFrame(window, "compact");
             True(window.FindControl<TextBox>("PromptBox")!.Bounds.Width > 200, "Chat remains usable at minimum window size");
-            Console.WriteLine("PASS UI: MVP design, formatted replies, trimming settings, archive/restore, isolated sessions, model signals, language and privacy review.");
+            var toggle = window.FindControl<Button>("ToggleChatsButton")!;
+            True(toggle.TranslatePoint(new Point(toggle.Bounds.Width, 0), window.FindControl<Border>("ChatsSidebar")!)!.Value.X <= 240,
+                "Chat sidebar toggle stays visible at minimum window width");
+            CheckPersistence(fixture, folderB);
+            CheckTitleLifecycle(folderB);
+            Console.WriteLine("PASS UI: per-row chat menus, goal titles, title cancellation, durable naming/export/restart, smooth sidebars, modal backdrop, isolated sessions, model signals, language and privacy review.");
             Console.WriteLine("Synthetic screenshots: artifacts/screenshots/{mvp-design,start,collapsed,settings,context,message-ru,chat,chats,archive,compact}.png");
             return 0;
         }
         catch (Exception e) { Console.WriteLine("FAIL UI: " + e.Message); return 1; }
         finally
         {
-            window.Close();
+            window.Close(); SettleAnimations();
             string resolved = Path.GetFullPath(fixture);
             if (Path.GetDirectoryName(resolved) == fixtureRoot && Path.GetFileName(resolved).StartsWith("ui-", StringComparison.Ordinal)) Directory.Delete(resolved, true);
         }
     }
 
     static HttpResponseMessage Response(string body) => new(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+    static MenuFlyout OpenRowMenu(Window window, ConversationViewModel chat)
+    {
+        Flush(); window.UpdateLayout();
+        var button = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "ChatRowMenuButton" && b.DataContext == chat);
+        var menu = (MenuFlyout)button.Flyout!; menu.ShowAt(button); Flush();
+        True(menu.Items.OfType<MenuItem>().All(item => item.Command is not null), "Chat menu commands resolve through the flyout");
+        return menu;
+    }
+    static void CheckTitleLifecycle(string sourceFolder)
+    {
+        var completion = new TaskCompletionSource<HttpResponseMessage>();
+        CancellationToken titleToken = default;
+        using var workspace = new WorkspaceViewModel(() => new ModelClient(new StubHandler(async (request, ct) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/show") return Response("{\"model_info\":{\"general.architecture\":\"llama\"}}");
+            string body = await request.Content!.ReadAsStringAsync(ct);
+            if (body.Contains("Create a short chat title")) { titleToken = ct; return await completion.Task; }
+            return Response("{\"message\":{\"content\":\"Completed safe reply\"},\"done\":true}\n");
+        })));
+        var first = workspace.Active!; var vm = first.Session;
+        vm.Folder = sourceFolder; vm.LocalModel = "demo-local"; vm.PrepareCommand.Execute(null); Wait(vm); vm.ContextApproved = true;
+        void Send()
+        {
+            vm.Prompt = "Please help me plan a product launch"; vm.PreviewPromptCommand.Execute(null); Wait(vm); vm.SendCommand.Execute(null); Wait(vm);
+            True(vm.Chat.Count == 2 && !vm.TitleUpdate.IsCompleted && !vm.Busy, "Naming runs in the background after a complete reply");
+        }
+        Send(); vm.NewChatCommand.Execute(null);
+        completion.SetResult(Response("{\"message\":{\"content\":\"Late name after reset\"}}")); WaitTask(vm.TitleUpdate);
+        True(titleToken.IsCancellationRequested && vm.ChatTitle == "" && vm.Chat.Count == 0, "Late title cannot restore a cleared conversation");
+        completion = new TaskCompletionSource<HttpResponseMessage>(); Send();
+        workspace.NewChatCommand.Execute(null); var second = workspace.Active!; second.Session.Prompt = "Keep this draft";
+        first.DeleteCommand.Execute(null);
+        completion.SetResult(Response("{\"message\":{\"content\":\"Late name after delete\"}}")); WaitTask(vm.TitleUpdate);
+        True(titleToken.IsCancellationRequested && vm.ChatTitle == "" && workspace.Active == second && second.Session.Prompt == "Keep this draft" && workspace.Conversations.Count == 1,
+            "Late title cannot recreate a deleted chat or alter the active chat");
+    }
+    static void CheckPersistence(string fixture, string sourceFolder)
+    {
+        string storageFolder = Path.Combine(fixture, "saved-chats"), exportFolder = Path.Combine(fixture, "exports");
+        Func<ModelClient> clients = () => new ModelClient(new StubHandler(async (request, ct) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/show") return Response("{\"model_info\":{\"general.architecture\":\"llama\"}}");
+            string payload = await request.Content!.ReadAsStringAsync(ct);
+            using var json = JsonDocument.Parse(payload);
+            if (json.RootElement.TryGetProperty("format", out _)) return Response("{\"message\":{\"content\":\"{\\\"entities\\\":[]}\"}}");
+            if (payload.Contains("Create a short chat title")) return Response("{\"message\":{\"content\":\"Discussion with second@example.com\"}}");
+            string reply = payload.Contains("Continue the discussion") ? "Continuing the safe discussion" : "Contact second@example.com; disk-only-key; DiskPrivateProject";
+            return Response(JsonSerializer.Serialize(new { message = new { content = reply }, done = true }) + "\n");
+        }));
+        Guid id;
+        using (var original = new WorkspaceViewModel(clients, new ChatArchiveService(new JsonDirectoryChatStore(storageFolder))))
+        {
+            WaitTask(original.InitializeAsync());
+            True(original.Active!.Number == 1, "An empty store starts with Chat 1");
+            var vm = original.Active!.Session; id = original.Active.Id;
+            vm.LocalModel = "demo-local"; vm.ApiKey = "disk-only-key"; vm.CustomTerms = "DiskPrivateProject";
+            vm.Folder = sourceFolder; vm.PrepareCommand.Execute(null); Wait(vm); vm.ContextApproved = true;
+            vm.RestoreLocally = true; vm.Prompt = "Discuss DiskPrivateProject with second@example.com";
+            vm.PreviewPromptCommand.Execute(null); Wait(vm); vm.SendCommand.Execute(null); Wait(vm);
+            WaitTask(vm.TitleUpdate);
+            string savedTitle = original.Active.Title;
+            True(!savedTitle.Contains("second@example.com") && savedTitle.StartsWith("Discussion"), "Generated title is sanitized again before display and saving");
+            True(vm.Chat[1].Text.Contains("second@example.com"), "Local display can contain restored originals");
+            vm.Prompt = "disk-only-unsent-draft";
+            WaitTask(original.FlushStorageAsync());
+            string json = File.ReadAllText(Directory.GetFiles(storageFolder, "*.json").Single());
+            foreach (string secret in new[] { "second@example.com", "second-sensitive-password", "disk-only-key", "DiskPrivateProject", "disk-only-unsent-draft", "ApiKey", "LocalRelativePath", "ContextApproved" })
+                True(!json.Contains(secret), "Storage must exclude secrets, original paths, keys, drafts and approval");
+            original.PickExportFolderAsync = () => Task.FromResult<string?>(exportFolder);
+            original.ExportChatCommand.Execute(null); WaitWorkspace(original);
+            True(!original.StorageFailed && Directory.GetFiles(exportFolder).Length == 2, "Export writes JSON and Markdown");
+            foreach (string file in Directory.GetFiles(exportFolder))
+                True(!File.ReadAllText(file).Contains("second@example.com"), "Export excludes restored display values");
+            original.ArchiveChatCommand.Execute(null); WaitTask(original.FlushStorageAsync());
+            var closingWindow = new MainWindow(original); closingWindow.Show(); Flush(); closingWindow.Close();
+            SettleAnimations(); True(!closingWindow.IsVisible, "Normal window closure flushes storage and releases the window");
+        }
+        using (var reopened = new WorkspaceViewModel(clients, new ChatArchiveService(new JsonDirectoryChatStore(storageFolder))))
+        {
+            WaitTask(reopened.InitializeAsync());
+            True(reopened.ArchivedCount == 1, "Archive survives application restart");
+            reopened.ToggleArchiveViewCommand.Execute(null);
+            var vm = reopened.Active!.Session;
+            True(reopened.Active.Id == id && vm.Chat.Count == 2 && vm.Ready && !vm.ContextApproved && vm.ApiKey == "" && vm.Folder == "" && vm.CustomTerms == "" && vm.Replacements.Count == 0,
+                "Reopening restores safe chat and context, with no original configuration, mapping or approval");
+            True(reopened.Active.Title == "Discussion with", "Goal-derived title survives restart");
+            vm.LocalModel = "demo-local"; True(vm.Chat.Count == 2, "Initial model setup preserves reopened history");
+            vm.UseAgent = true; vm.AgentModel = "local-cleaner";
+            True(vm.Chat.Count == 2 && vm.Ready && !vm.ContextApproved, "Initial cleaner setup preserves reopened history and requires review");
+            vm.ContextApproved = true; vm.Prompt = "Continue the discussion";
+            vm.PreviewPromptCommand.Execute(null); Wait(vm); vm.SendCommand.Execute(null); Wait(vm);
+            True(vm.Chat.Count == 4, "A reviewed reopened chat can continue its conversation");
+            reopened.DeleteChatCommand.Execute(null); WaitTask(reopened.FlushStorageAsync());
+            True(!File.Exists(Path.Combine(storageFolder, id.ToString("N") + ".json")), "Deleting removes the persisted chat");
+            reopened.ClearAllCommand.Execute(null); WaitTask(reopened.FlushStorageAsync());
+            True(new JsonDirectoryChatStore(storageFolder).LoadAsync(default).GetAwaiter().GetResult().All(chat => chat.Messages.Count == 0 && !chat.Archived),
+                "Clear all also removes persisted archived transcripts");
+        }
+    }
+    static void WaitTask(Task task)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (!task.IsCompleted && DateTime.UtcNow < deadline) { Flush(); Thread.Sleep(10); }
+        True(task.IsCompleted, "Storage operation timed out"); task.GetAwaiter().GetResult(); Flush();
+    }
+    static void WaitWorkspace(WorkspaceViewModel workspace)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (workspace.IsBusy && DateTime.UtcNow < deadline) { Flush(); Thread.Sleep(10); }
+        True(!workspace.IsBusy, "Workspace operation timed out"); Flush();
+    }
     static string Decode(string payload)
     {
         using var json = JsonDocument.Parse(payload);
@@ -280,9 +430,16 @@ internal static class Program
     static SettingsWindow OpenSettings(Window window, WorkspaceViewModel workspace)
     {
         workspace.SettingsCommand.Execute(null); Flush();
+        SettleAnimations();
         return window.OwnedWindows.OfType<SettingsWindow>().Single();
     }
     static void Flush() { Dispatcher.UIThread.RunJobs(); }
+    static void SettleAnimations()
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(450);
+        while (DateTime.UtcNow < deadline) { Flush(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Thread.Sleep(10); }
+        Flush();
+    }
     static bool VisibleText(Window window, string text) => window.GetVisualDescendants().OfType<TextBlock>().Any(block => block.Text == text);
     static void Wait(MainViewModel vm, bool expectError = false)
     {

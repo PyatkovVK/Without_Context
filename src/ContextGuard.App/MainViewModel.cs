@@ -26,10 +26,11 @@ public sealed class ChatRow : Bindable
     public bool IsAssistant { get; }
     private string text;
     public string Text { get => text; set => Set(ref text, value); }
-    public string TimeLabel { get; } = DateTime.Now.ToString("HH:mm");
+    public DateTimeOffset CreatedAt { get; }
+    public string TimeLabel => CreatedAt.ToLocalTime().ToString("HH:mm");
     public string Color { get; }
-    public ChatRow(string label, string text, bool assistant = false)
-    { this.label = label; this.text = text; IsAssistant = assistant; Color = assistant ? "#A995E3" : "#71D6B3"; }
+    public ChatRow(string label, string text, bool assistant = false, DateTimeOffset? createdAt = null)
+    { this.label = label; this.text = text; IsAssistant = assistant; CreatedAt = createdAt ?? DateTimeOffset.Now; Color = assistant ? "#A995E3" : "#71D6B3"; }
 }
 
 public sealed class LocalizedOption : Bindable
@@ -58,6 +59,13 @@ public sealed class MainViewModel : Bindable, IDisposable
 {
     private readonly ModelClient client;
     private readonly ContextPreparationService preparation;
+    private readonly ConversationTitleService titles;
+    private CancellationTokenSource? titleOperation;
+    private int titleRevision;
+    private bool titleAttempted;
+    private string chatTitle = "";
+    public string ChatTitle { get => chatTitle; private set => Set(ref chatTitle, value); }
+    public Task TitleUpdate { get; private set; } = Task.CompletedTask;
     private bool disposed;
     private readonly List<ChatMessage> history = new();
     private RedactionSession? session;
@@ -66,6 +74,10 @@ public sealed class MainViewModel : Bindable, IDisposable
     private readonly List<RelayCommand> commands = new();
     public Func<Task<string?>>? PickFolderAsync { get; set; }
     public event Action? ScrollChat;
+    public event Action? StoredStateChanged;
+    private string safeStoredContext = "";
+    private bool reopened;
+    private readonly List<StoredMessage> completedMessages = new();
 
     public ObservableCollection<ChatRow> Chat { get; } = new();
     public ObservableCollection<string> LocalModels { get; } = new();
@@ -120,11 +132,11 @@ public sealed class MainViewModel : Bindable, IDisposable
     private string customTerms = "";
     public string CustomTerms { get => customTerms; set { if (Set(ref customTerms, value)) InvalidateContext(); } }
     private bool useAgent;
-    public bool UseAgent { get => useAgent; set { if (Set(ref useAgent, value)) { ResetCleanerConnection(); InvalidateContext(); } } }
+    public bool UseAgent { get => useAgent; set { if (Set(ref useAgent, value)) { ResetCleanerConnection(); ResetCleanerContext(); } } }
     private string agentEndpoint = "http://localhost:11434";
-    public string AgentEndpoint { get => agentEndpoint; set { if (Set(ref agentEndpoint, value)) { AgentModels.Clear(); ResetCleanerConnection(); InvalidateContext(); } } }
+    public string AgentEndpoint { get => agentEndpoint; set { if (Set(ref agentEndpoint, value)) { AgentModels.Clear(); ResetCleanerConnection(); ResetCleanerContext(); } } }
     private string agentModel = "";
-    public string AgentModel { get => agentModel; set { if (Set(ref agentModel, value)) { Notify(nameof(SelectedAgentModel)); ResetCleanerConnection(); InvalidateContext(); } } }
+    public string AgentModel { get => agentModel; set { if (Set(ref agentModel, value)) { Notify(nameof(SelectedAgentModel)); ResetCleanerConnection(); ResetCleanerContext(); } } }
     private int contextLimit = 24000;
     public int ContextLimit { get => contextLimit; set { if (Set(ref contextLimit, Math.Clamp(value, 4000, FolderCollector.MaxContextChars))) { Notify(nameof(TrimmingSummary)); InvalidateContext(); } } }
     private ContextTrimmingMode trimmingMode = ContextTrimmingMode.Moderate;
@@ -162,7 +174,7 @@ public sealed class MainViewModel : Bindable, IDisposable
     public int ProviderIndex
     {
         get => providerIndex;
-        set { if (value is >= 0 and <= 1 && Set(ref providerIndex, value)) { Notify(nameof(SelectedProvider)); ResetChatConnection(); ResetConversation(); Notify(nameof(IsOllama)); Notify(nameof(IsRemote)); Refresh(); } }
+        set { if (value is >= 0 and <= 1 && Set(ref providerIndex, value)) { Notify(nameof(SelectedProvider)); ResetChatConnection(); ResetModelConversation(); Notify(nameof(IsOllama)); Notify(nameof(IsRemote)); Refresh(); } }
     }
     public LocalizedOption? SelectedProvider
     {
@@ -172,13 +184,13 @@ public sealed class MainViewModel : Bindable, IDisposable
     public bool IsOllama => ProviderIndex == 0;
     public bool IsRemote => !IsOllama;
     private string ollamaEndpoint = "http://localhost:11434";
-    public string OllamaEndpoint { get => ollamaEndpoint; set { if (Set(ref ollamaEndpoint, value)) { LocalModels.Clear(); ResetChatConnection(); ResetConversation(); } } }
+    public string OllamaEndpoint { get => ollamaEndpoint; set { if (Set(ref ollamaEndpoint, value)) { LocalModels.Clear(); ResetChatConnection(); ResetModelConversation(); } } }
     private string localModel = "";
-    public string LocalModel { get => localModel; set { if (Set(ref localModel, value)) { Notify(nameof(SelectedLocalModel)); ResetChatConnection(); ResetConversation(); } } }
+    public string LocalModel { get => localModel; set { if (Set(ref localModel, value)) { Notify(nameof(SelectedLocalModel)); ResetChatConnection(); ResetModelConversation(); } } }
     private string apiEndpoint = "";
-    public string ApiEndpoint { get => apiEndpoint; set { if (Set(ref apiEndpoint, value)) { ResetChatConnection(); ResetConversation(); } } }
+    public string ApiEndpoint { get => apiEndpoint; set { if (Set(ref apiEndpoint, value)) { ResetChatConnection(); ResetModelConversation(); } } }
     private string apiModel = "";
-    public string ApiModel { get => apiModel; set { if (Set(ref apiModel, value)) { ResetChatConnection(); ResetConversation(); } } }
+    public string ApiModel { get => apiModel; set { if (Set(ref apiModel, value)) { ResetChatConnection(); ResetModelConversation(); } } }
     private string apiKey = "";
     public string ApiKey
     {
@@ -186,7 +198,7 @@ public sealed class MainViewModel : Bindable, IDisposable
         set
         {
             if (!Set(ref apiKey, value)) return;
-            ResetChatConnection(); ResetConversation();
+            ResetChatConnection(); ResetModelConversation();
             if (session is not null && !string.IsNullOrWhiteSpace(value))
             {
                 session.AddEntity(value, "SECRET");
@@ -203,6 +215,7 @@ public sealed class MainViewModel : Bindable, IDisposable
         set
         {
             if (!Set(ref contextText, value)) return;
+            safeStoredContext = "";
             ContextApproved = false; Notify(nameof(Summary));
             ResetConversation();
         }
@@ -282,10 +295,11 @@ public sealed class MainViewModel : Bindable, IDisposable
     public RelayCommand ClearSessionCommand { get; }
     public RelayCommand DismissErrorCommand { get; }
 
-    public MainViewModel(ModelClient client, ContextPreparationService preparation)
+    public MainViewModel(ModelClient client, ContextPreparationService preparation, ConversationTitleService titles)
     {
         this.client = client;
         this.preparation = preparation;
+        this.titles = titles;
         ShowChatCommand = Command(() => SelectedTab = 0);
         ShowContextCommand = Command(() => SelectedTab = 1);
         ShowReplacementsCommand = Command(() => SelectedTab = 2);
@@ -320,11 +334,22 @@ public sealed class MainViewModel : Bindable, IDisposable
     private void ClearPending() { PendingText = ""; HasPending = false; }
     private void ResetConversation()
     {
+        CancelTitle(); titleAttempted = false; ChatTitle = "";
+        reopened = false; completedMessages.Clear();
         ClearPending(); history.Clear(); Chat.Clear(); safeAnswers.Clear(); Refresh();
+        if (!disposed) StoredStateChanged?.Invoke();
+    }
+    private void ResetModelConversation()
+    { if (reopened) { ClearPending(); Refresh(); } else ResetConversation(); }
+    private void ResetCleanerContext()
+    {
+        if (reopened) { ContextApproved = false; ClearPending(); SetStatus("StatusReopened"); Refresh(); }
+        else InvalidateContext();
     }
     private void InvalidateContext()
     {
         session = null; scan = null; ContextApproved = false;
+        safeStoredContext = "";
         if (contextText.Length != 0) { contextText = ""; Notify(nameof(ContextText)); }
         Replacements.Clear(); Files.Clear(); Notify(nameof(CountSummary)); Notify(nameof(Summary));
         ResetConversation(); Refresh();
@@ -447,6 +472,8 @@ public sealed class MainViewModel : Bindable, IDisposable
         session = prepared.Session; scan = prepared.Snapshot;
         Files.Clear(); foreach (var file in prepared.Snapshot.Files) Files.Add(file);
         ContextText = prepared.Text;
+        safeStoredContext = prepared.Text;
+        StoredStateChanged?.Invoke();
         Notify(nameof(Summary));
         SelectedTab = 1; UpdateReplacements(); Refresh();
         SetStatus("StatusReviewContext");
@@ -517,9 +544,21 @@ public sealed class MainViewModel : Bindable, IDisposable
             if (!disposed && connectionRevision == chatRevision) SetConnection(false, ConnectionState.Connected);
             string safeAnswer = session.Sanitize(answer);
             history.Add(new("user", outgoing)); history.Add(new("assistant", safeAnswer));
+            completedMessages.Add(new("user", outgoing, userRow.CreatedAt));
+            completedMessages.Add(new("assistant", safeAnswer, modelRow.CreatedAt));
             safeAnswers[modelRow] = safeAnswer;
             modelRow.Text = RestoreLocally ? session.RestoreForLocalDisplay(safeAnswer) : safeAnswer;
             success = true; Prompt = ""; ClearPending();
+            reopened = false; safeStoredContext = ContextText;
+            if (!titleAttempted)
+            {
+                titleAttempted = true;
+                string goal = session.Sanitize(completedMessages[0].Content);
+                ChatTitle = ConversationTitleService.Fallback(goal);
+                var source = titleOperation = new CancellationTokenSource();
+                TitleUpdate = UpdateTitleAsync(settings, goal, session, source, titleRevision);
+            }
+            StoredStateChanged?.Invoke();
             SetStatus("StatusReplyReceived");
         }
         catch (OperationCanceledException) { if (!disposed && connectionRevision == chatRevision) SetConnection(false, ConnectionState.Unchecked); throw; }
@@ -536,11 +575,61 @@ public sealed class MainViewModel : Bindable, IDisposable
         }
     }
 
+    private async Task UpdateTitleAsync(ModelSettings settings, string goal, RedactionSession owner,
+        CancellationTokenSource source, int revision)
+    {
+        CancellationToken ct = source.Token;
+        try
+        {
+            string? generated = await titles.GenerateAsync(settings, goal, owner.Sanitize(ContextText), ct);
+            if (disposed || ct.IsCancellationRequested || revision != titleRevision || !ReferenceEquals(session, owner) || generated is null) return;
+            string? safe = ConversationTitleService.Normalize(owner.Sanitize(generated));
+            if (safe is null) return;
+            ChatTitle = safe; StoredStateChanged?.Invoke();
+        }
+        catch (OperationCanceledException) { }
+        catch { } // An optional title cannot turn a successful reply into an error.
+        finally { if (ReferenceEquals(titleOperation, source)) titleOperation = null; source.Dispose(); }
+    }
+    private void CancelTitle()
+    { titleRevision++; titleOperation?.Cancel(); titleOperation = null; }
+
+    public (string Context, IReadOnlyList<StoredMessage> Messages, string Title) CaptureStoredState()
+    {
+        // Display rows can contain restored originals or unfinished streaming data. Never persist them.
+        return (session?.Sanitize(safeStoredContext) ?? "",
+            completedMessages.Select(m => m with { Content = session?.Sanitize(m.Content) ?? m.Content }).ToArray(),
+            ConversationTitleService.Normalize(session?.Sanitize(ChatTitle) ?? ChatTitle) ?? "");
+    }
+    public void RestoreStoredState(StoredConversation stored)
+    {
+        session = new RedactionSession(Options());
+        contextText = safeStoredContext = session.Sanitize(stored.Context);
+        scan = contextText.Length == 0 ? null : new(0, 0, contextText.Length, false, []);
+        completedMessages.Clear(); history.Clear(); Chat.Clear(); safeAnswers.Clear();
+        foreach (var message in stored.Messages)
+        {
+            string safe = session.Sanitize(message.Content);
+            completedMessages.Add(message with { Content = safe }); history.Add(new(message.Role, safe));
+            var row = new ChatRow(Text[message.Role == "user" ? "You" : "Assistant"], safe, message.Role == "assistant", message.CreatedAt);
+            Chat.Add(row); if (row.IsAssistant) safeAnswers[row] = safe;
+        }
+        ChatTitle = ConversationTitleService.Normalize(session.Sanitize(stored.Title)) ??
+            ConversationTitleService.Fallback(completedMessages.FirstOrDefault()?.Content ?? "");
+        titleAttempted = stored.Title.Length > 0;
+        reopened = true; contextApproved = false;
+        Notify(nameof(ContextText)); Notify(nameof(ContextApproved)); Notify(nameof(Summary));
+        SetStatus("StatusReopened"); Refresh();
+    }
+    public void CancelOperation() { operation?.Cancel(); CancelTitle(); }
+
     public void Dispose()
     {
         if (disposed) return;
-        disposed = true; operation?.Cancel(); client.Dispose(); session = null; scan = null;
-        history.Clear(); safeAnswers.Clear(); Chat.Clear(); Files.Clear(); Replacements.Clear();
+        disposed = true; operation?.Cancel(); CancelTitle(); client.Dispose(); session = null; scan = null;
+        chatTitle = "";
+        history.Clear(); completedMessages.Clear(); safeStoredContext = "";
+        safeAnswers.Clear(); Chat.Clear(); Files.Clear(); Replacements.Clear();
         folder = apiKey = customTerms = trimmingInstructions = prompt = pendingText = contextText = "";
         LocalModels.Clear(); AgentModels.Clear();
         contextApproved = hasPending = false; PickFolderAsync = null;

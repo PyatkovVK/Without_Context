@@ -338,7 +338,7 @@ company name, surname, project…</value>
     <value>Anonymized context sent · the model is replying…</value>
   </data>
   <data name="StatusReplyReceived" xml:space="preserve">
-    <value>Reply received. History and the replacement map stay only in this session’s memory.</value>
+    <value>Reply received. Original sensitive values stay in this session’s memory.</value>
   </data>
   <data name="StatusReviewContext" xml:space="preserve">
     <value>Review the context on the right and confirm it. Automatic checks may miss sensitive data.</value>
@@ -421,9 +421,6 @@ company name, surname, project…</value>
   <data name="ChatNoContext" xml:space="preserve">
     <value>No context yet</value>
   </data>
-  <data name="ChatsMemoryHint" xml:space="preserve">
-    <value>Chats stay in memory until you close the app.</value>
-  </data>
   <data name="HideChats" xml:space="preserve">
     <value>Collapse chats</value>
   </data>
@@ -468,9 +465,6 @@ company name, surname, project…</value>
   </data>
   <data name="SettingsRulesHelp" xml:space="preserve">
     <value>Changing the rules or context limit requires preparing and reviewing context again in this chat.</value>
-  </data>
-  <data name="MemoryOnlyHelp" xml:space="preserve">
-    <value>Context, keys and conversations stay in memory. Nothing is saved to disk.</value>
   </data>
   <data name="ClearAllChats" xml:space="preserve">
     <value>Clear all chats and keys</value>
@@ -630,5 +624,68 @@ company name, surname, project…</value>
   </data>
   <data name="StatusTrimming" xml:space="preserve">
     <value>Trimming context locally…</value>
+  </data>
+  <data name="Assistant" xml:space="preserve">
+    <value>Assistant</value>
+  </data>
+  <data name="Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="ChatsStorageHint" xml:space="preserve">
+    <value>Chats are saved locally. Export from chat settings.</value>
+  </data>
+  <data name="ChatStorageFolder" xml:space="preserve">
+    <value>Chat storage folder</value>
+  </data>
+  <data name="ChatStorageHelp" xml:space="preserve">
+    <value>Anonymized chats and context are saved locally. API keys and original values stay in memory. Exports include JSON and Markdown.</value>
+  </data>
+  <data name="ExportChat" xml:space="preserve">
+    <value>Export chat</value>
+  </data>
+  <data name="ExportAllChats" xml:space="preserve">
+    <value>Export all chats</value>
+  </data>
+  <data name="ExportFolderTitle" xml:space="preserve">
+    <value>Choose a folder for exported chats</value>
+  </data>
+  <data name="ChatExportComplete" xml:space="preserve">
+    <value>Export complete. JSON and Markdown files were saved in the selected folder.</value>
+  </data>
+  <data name="StatusReopened" xml:space="preserve">
+    <value>Chat restored. Select a model and review the saved context before continuing.</value>
+  </data>
+  <data name="ChatStorageUnsafePath" xml:space="preserve">
+    <value>Chat storage cannot use symbolic links or redirected folders.</value>
+  </data>
+  <data name="ChatStorageInvalid" xml:space="preserve">
+    <value>A saved chat has an invalid or unsupported format. Existing files were left unchanged.</value>
+  </data>
+  <data name="ChatStorageLimit" xml:space="preserve">
+    <value>Chat storage limit reached (200 chats, 512 messages per chat, 8 MiB per file, 64 MiB total). Export or remove older chats.</value>
+  </data>
+  <data name="ChatStorageReadFailed" xml:space="preserve">
+    <value>Saved chats could not be opened. Check the storage folder and access permissions. Existing files were left unchanged.</value>
+  </data>
+  <data name="ChatStorageWriteFailed" xml:space="preserve">
+    <value>Chats could not be saved. Check free space and storage-folder permissions.</value>
+  </data>
+  <data name="ChatExportOwnFolder" xml:space="preserve">
+    <value>Choose an export folder outside the application's chat storage folder.</value>
+  </data>
+  <data name="ChatExportFailed" xml:space="preserve">
+    <value>Chats could not be exported. Check the selected folder and free space.</value>
+  </data>
+  <data name="ChatStorageCloseFailed" xml:space="preserve">
+    <value>Recent changes could not be saved. Keep the app open to resolve the storage problem, or close without saving.</value>
+  </data>
+  <data name="KeepOpen" xml:space="preserve">
+    <value>Keep open</value>
+  </data>
+  <data name="CloseWithoutSaving" xml:space="preserve">
+    <value>Close without saving</value>
+  </data>
+  <data name="ChatActionsLabel" xml:space="preserve">
+    <value>Chat actions</value>
   </data>
 </root>
