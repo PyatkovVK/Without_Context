@@ -19,7 +19,7 @@ public partial class App : Application
                 desktop.MainWindow.ShowInTaskbar = false;
                 DispatcherTimer.RunOnce(() => desktop.Shutdown(0), TimeSpan.FromSeconds(2));
             }
-            desktop.Exit += (_, _) => (desktop.MainWindow?.DataContext as MainViewModel)?.Dispose();
+            desktop.Exit += (_, _) => (desktop.MainWindow?.DataContext as WorkspaceViewModel)?.Dispose();
         }
         base.OnFrameworkInitializationCompleted();
     }

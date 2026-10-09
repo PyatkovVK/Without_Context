@@ -141,3 +141,6 @@ id_dsa*
 *.bak
 *.tmp
 *.temp
+
+/AGENTS.md
+/ARCHITECTURE.md

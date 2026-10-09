@@ -2,7 +2,7 @@ using System.Text;
 
 namespace ContextGuard.Core;
 
-public sealed class FolderCollector
+public sealed class FolderCollector : IContextCollector
 {
     public const int MaxFiles = 160;
     public const int MaxFileBytes = 128 * 1024;

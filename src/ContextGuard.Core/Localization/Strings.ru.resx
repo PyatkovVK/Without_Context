@@ -397,4 +397,238 @@
   <data name="You" xml:space="preserve">
     <value>ВЫ</value>
   </data>
+  <data name="Chats" xml:space="preserve">
+    <value>Чаты</value>
+  </data>
+  <data name="Models" xml:space="preserve">
+    <value>Модели</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Настройки</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Готово</value>
+  </data>
+  <data name="DeleteChat" xml:space="preserve">
+    <value>Удалить этот чат</value>
+  </data>
+  <data name="ConversationTitle" xml:space="preserve">
+    <value>Чат {0}</value>
+  </data>
+  <data name="ChatContextReady" xml:space="preserve">
+    <value>Контекст подготовлен</value>
+  </data>
+  <data name="ChatNoContext" xml:space="preserve">
+    <value>Контекст не подготовлен</value>
+  </data>
+  <data name="ChatsMemoryHint" xml:space="preserve">
+    <value>Чаты находятся в памяти до закрытия приложения.</value>
+  </data>
+  <data name="HideChats" xml:space="preserve">
+    <value>Свернуть чаты</value>
+  </data>
+  <data name="ShowChats" xml:space="preserve">
+    <value>Развернуть чаты</value>
+  </data>
+  <data name="HideModels" xml:space="preserve">
+    <value>Свернуть модели</value>
+  </data>
+  <data name="ShowModels" xml:space="preserve">
+    <value>Развернуть модели</value>
+  </data>
+  <data name="CleanerModel" xml:space="preserve">
+    <value>Очиститель</value>
+  </data>
+  <data name="AssistantModel" xml:space="preserve">
+    <value>Помощник</value>
+  </data>
+  <data name="EnableCleaner" xml:space="preserve">
+    <value>Использовать очиститель Ollama</value>
+  </data>
+  <data name="CleanerRulesHelp" xml:space="preserve">
+    <value>Локальные правила работают всегда. Скачанная модель Ollama добавляет проверку.</value>
+  </data>
+  <data name="Connect" xml:space="preserve">
+    <value>Подключить</value>
+  </data>
+  <data name="PrepareShort" xml:space="preserve">
+    <value>Подготовить контекст</value>
+  </data>
+  <data name="ReviewMessageShort" xml:space="preserve">
+    <value>Проверьте обезличенное сообщение</value>
+  </data>
+  <data name="SimpleWelcomeHelp" xml:space="preserve">
+    <value>Выберите папку, подготовьте и проверьте контекст, затем опишите задачу.</value>
+  </data>
+  <data name="SettingsHelp" xml:space="preserve">
+    <value>Язык и правила обезличивания для вашей работы.</value>
+  </data>
+  <data name="ProtectionSettings" xml:space="preserve">
+    <value>Профиль обезличивания</value>
+  </data>
+  <data name="SettingsRulesHelp" xml:space="preserve">
+    <value>После изменения правил или лимита подготовьте и проверьте контекст этого чата заново.</value>
+  </data>
+  <data name="MemoryOnlyHelp" xml:space="preserve">
+    <value>Контекст, ключи и диалоги остаются в памяти и не сохраняются на диск.</value>
+  </data>
+  <data name="ClearAllChats" xml:space="preserve">
+    <value>Очистить все чаты и ключи</value>
+  </data>
+  <data name="SignalUnchecked" xml:space="preserve">
+    <value>Не проверено</value>
+  </data>
+  <data name="SignalChecking" xml:space="preserve">
+    <value>Подключение…</value>
+  </data>
+  <data name="SignalConnected" xml:space="preserve">
+    <value>Подключено</value>
+  </data>
+  <data name="SignalFailed" xml:space="preserve">
+    <value>Ошибка подключения</value>
+  </data>
+  <data name="SignalDisabled" xml:space="preserve">
+    <value>Локальные правила</value>
+  </data>
+  <data name="SignalUnavailable" xml:space="preserve">
+    <value>Не подтверждено</value>
+  </data>
+  <data name="CheckConnectionHint" xml:space="preserve">
+    <value>Нажмите «Подключить» в панели моделей для проверки выбранной модели.</value>
+  </data>
+  <data name="ConnectionVerifiedHint" xml:space="preserve">
+    <value>Выбранная модель прошла последнюю проверку подключения. Нажмите «Подключить» для обновления.</value>
+  </data>
+  <data name="RulesOnlyHint" xml:space="preserve">
+    <value>ИИ-очиститель выключен. Встроенные правила обезличивания работают локально.</value>
+  </data>
+  <data name="StatusCheckingCleaner" xml:space="preserve">
+    <value>Проверяю подключение локального очистителя…</value>
+  </data>
+  <data name="StatusCheckingAssistant" xml:space="preserve">
+    <value>Проверяю подключение помощника…</value>
+  </data>
+  <data name="StatusCleanerConnected" xml:space="preserve">
+    <value>Локальный очиститель подключён.</value>
+  </data>
+  <data name="StatusAssistantConnected" xml:space="preserve">
+    <value>Выбранный помощник подключён.</value>
+  </data>
+  <data name="ApiConnectionHelp" xml:space="preserve">
+    <value>Подключение проверяет список моделей API без отправки контекста и генерации ответа.</value>
+  </data>
+  <data name="ConnectionCheckUnavailable" xml:space="preserve">
+    <value>Этот API не поддерживает проверку через список моделей. Подключение подтвердится после успешного запроса в чате.</value>
+  </data>
+  <data name="ModelNotListed" xml:space="preserve">
+    <value>Выбранной модели нет в списке API. Проверьте идентификатор и права доступа.</value>
+  </data>
+  <data name="ChatSettings" xml:space="preserve">
+    <value>Настройки чата</value>
+  </data>
+  <data name="FolderContext" xml:space="preserve">
+    <value>Контекст папки</value>
+  </data>
+  <data name="BackToChat" xml:space="preserve">
+    <value>Вернуться в чат</value>
+  </data>
+  <data name="RecentChats" xml:space="preserve">
+    <value>Недавние чаты</value>
+  </data>
+  <data name="ArchivedChats" xml:space="preserve">
+    <value>Архив чатов</value>
+  </data>
+  <data name="BackToChats" xml:space="preserve">
+    <value>Вернуться к чатам</value>
+  </data>
+  <data name="ArchiveCount" xml:space="preserve">
+    <value>Архив ({0})</value>
+  </data>
+  <data name="ArchiveChat" xml:space="preserve">
+    <value>Архивировать чат</value>
+  </data>
+  <data name="ArchiveChatHelp" xml:space="preserve">
+    <value>Скрыть из списка чатов</value>
+  </data>
+  <data name="RestoreChat" xml:space="preserve">
+    <value>Вернуть чат</value>
+  </data>
+  <data name="RestoreChatHelp" xml:space="preserve">
+    <value>Вернуть в список чатов</value>
+  </data>
+  <data name="DeleteChatHelp" xml:space="preserve">
+    <value>Это действие нельзя отменить</value>
+  </data>
+  <data name="LocalCleanerTitle" xml:space="preserve">
+    <value>Локальная модель очистки</value>
+  </data>
+  <data name="TaskModelTitle" xml:space="preserve">
+    <value>Модель для ваших запросов</value>
+  </data>
+  <data name="SelectCleaner" xml:space="preserve">
+    <value>Выберите локальную модель</value>
+  </data>
+  <data name="SelectAssistant" xml:space="preserve">
+    <value>Выберите модель</value>
+  </data>
+  <data name="OnThisComputer" xml:space="preserve">
+    <value>Работает на этом компьютере</value>
+  </data>
+  <data name="RemoteModelHelp" xml:space="preserve">
+    <value>Получает проверенный обезличенный контекст</value>
+  </data>
+  <data name="MessagePlaceholder" xml:space="preserve">
+    <value>Напишите сообщение…</value>
+  </data>
+  <data name="ContextTrimming" xml:space="preserve">
+    <value>Обрезание контекста</value>
+  </data>
+  <data name="TrimmingHelp" xml:space="preserve">
+    <value>Применяется локально до проверки контекста. Отправляются только недавние пары сообщений; история в чате сохраняется.</value>
+  </data>
+  <data name="TrimMinimal" xml:space="preserve">
+    <value>Минимальное</value>
+  </data>
+  <data name="TrimMinimalHelp" xml:space="preserve">
+    <value>Больше контекста папки. До 12 последних сообщений.</value>
+  </data>
+  <data name="TrimModerate" xml:space="preserve">
+    <value>Умеренное</value>
+  </data>
+  <data name="TrimModerateHelp" xml:space="preserve">
+    <value>Сбалансированный объём. До 6 последних сообщений.</value>
+  </data>
+  <data name="TrimMaximum" xml:space="preserve">
+    <value>Максимальное</value>
+  </data>
+  <data name="TrimMaximumHelp" xml:space="preserve">
+    <value>Меньше контекста. До 2 последних сообщений.</value>
+  </data>
+  <data name="TrimCustom" xml:space="preserve">
+    <value>Пользовательское</value>
+  </data>
+  <data name="TrimCustomHelp" xml:space="preserve">
+    <value>Локальный очиститель применит правила ниже к контексту папки.</value>
+  </data>
+  <data name="TrimInstructionsHint" xml:space="preserve">
+    <value>Сохраняй цели, ключевые факты и важный код. Убирай повторы и детали, не относящиеся к задаче.</value>
+  </data>
+  <data name="TrimmingSummary" xml:space="preserve">
+    <value>Контекст: до {0} символов. Отправляемая история: до {1} последних сообщений и новое сообщение.</value>
+  </data>
+  <data name="CustomTrimmingNeedsLocalModel" xml:space="preserve">
+    <value>Для пользовательского обрезания включите скачанную модель Ollama в настройках чата.</value>
+  </data>
+  <data name="TrimmingInstructionsRequired" xml:space="preserve">
+    <value>Сначала введите пользовательские правила обрезания контекста.</value>
+  </data>
+  <data name="TrimmingInstructionsTooLong" xml:space="preserve">
+    <value>Правила обрезания не должны превышать 1000 символов.</value>
+  </data>
+  <data name="TrimmedContextEmpty" xml:space="preserve">
+    <value>После обрезания не осталось пригодного текста. Измените правила или выберите другой режим.</value>
+  </data>
+  <data name="StatusTrimming" xml:space="preserve">
+    <value>Локальное обрезание контекста…</value>
+  </data>
 </root>

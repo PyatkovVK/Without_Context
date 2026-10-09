@@ -26,6 +26,7 @@ public sealed class ChatRow : Bindable
     public bool IsAssistant { get; }
     private string text;
     public string Text { get => text; set => Set(ref text, value); }
+    public string TimeLabel { get; } = DateTime.Now.ToString("HH:mm");
     public string Color { get; }
     public ChatRow(string label, string text, bool assistant = false)
     { this.label = label; this.text = text; IsAssistant = assistant; Color = assistant ? "#A995E3" : "#71D6B3"; }
@@ -51,9 +52,13 @@ public sealed class RelayCommand : ICommand
     public void Refresh() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }
 
+public enum ConnectionState { Unchecked, Checking, Connected, Failed, Disabled, Unavailable }
+
 public sealed class MainViewModel : Bindable, IDisposable
 {
     private readonly ModelClient client;
+    private readonly ContextPreparationService preparation;
+    private bool disposed;
     private readonly List<ChatMessage> history = new();
     private RedactionSession? session;
     private ScanSummary? scan;
@@ -64,6 +69,19 @@ public sealed class MainViewModel : Bindable, IDisposable
 
     public ObservableCollection<ChatRow> Chat { get; } = new();
     public ObservableCollection<string> LocalModels { get; } = new();
+    public ObservableCollection<string> AgentModels { get; } = new();
+    public bool HasLocalModels => LocalModels.Count > 0;
+    public bool HasAgentModels => AgentModels.Count > 0;
+    public string? SelectedLocalModel
+    {
+        get => LocalModels.Contains(LocalModel) ? LocalModel : null;
+        set { if (!string.IsNullOrWhiteSpace(value)) LocalModel = value; }
+    }
+    public string? SelectedAgentModel
+    {
+        get => AgentModels.Contains(AgentModel) ? AgentModel : null;
+        set { if (!string.IsNullOrWhiteSpace(value)) AgentModel = value; }
+    }
     public ObservableCollection<ReplacementInfo> Replacements { get; } = new();
     public ObservableCollection<SafeFile> Files { get; } = new();
     public IReadOnlyList<LocalizedOption> Profiles { get; } = [new("ProfileAll"), new("ProfilePersonal"), new("ProfileInternal"), new("ProfileSecrets")];
@@ -82,7 +100,7 @@ public sealed class MainViewModel : Bindable, IDisposable
             Notify(nameof(Summary)); Notify(nameof(CountSummary));
             foreach (var option in Profiles.Concat(Providers)) option.Update(Text);
             foreach (var row in Chat.Where(row => !row.IsAssistant)) row.Label = Text["You"];
-            UpdateReplacements();
+            UpdateReplacements(); NotifyConnections(); NotifyModelLabels(); Notify(nameof(TrimmingSummary));
         }
     }
 
@@ -102,18 +120,49 @@ public sealed class MainViewModel : Bindable, IDisposable
     private string customTerms = "";
     public string CustomTerms { get => customTerms; set { if (Set(ref customTerms, value)) InvalidateContext(); } }
     private bool useAgent;
-    public bool UseAgent { get => useAgent; set { if (Set(ref useAgent, value)) InvalidateContext(); } }
+    public bool UseAgent { get => useAgent; set { if (Set(ref useAgent, value)) { ResetCleanerConnection(); InvalidateContext(); } } }
     private string agentEndpoint = "http://localhost:11434";
-    public string AgentEndpoint { get => agentEndpoint; set { if (Set(ref agentEndpoint, value)) InvalidateContext(); } }
+    public string AgentEndpoint { get => agentEndpoint; set { if (Set(ref agentEndpoint, value)) { AgentModels.Clear(); ResetCleanerConnection(); InvalidateContext(); } } }
     private string agentModel = "";
-    public string AgentModel { get => agentModel; set { if (Set(ref agentModel, value)) InvalidateContext(); } }
+    public string AgentModel { get => agentModel; set { if (Set(ref agentModel, value)) { Notify(nameof(SelectedAgentModel)); ResetCleanerConnection(); InvalidateContext(); } } }
     private int contextLimit = 24000;
-    public int ContextLimit { get => contextLimit; set { if (Set(ref contextLimit, Math.Clamp(value, 4000, FolderCollector.MaxContextChars))) InvalidateContext(); } }
+    public int ContextLimit { get => contextLimit; set { if (Set(ref contextLimit, Math.Clamp(value, 4000, FolderCollector.MaxContextChars))) { Notify(nameof(TrimmingSummary)); InvalidateContext(); } } }
+    private ContextTrimmingMode trimmingMode = ContextTrimmingMode.Moderate;
+    public ContextTrimmingMode TrimmingMode
+    {
+        get => trimmingMode;
+        set
+        {
+            if (!Enum.IsDefined(value) || !Set(ref trimmingMode, value)) return;
+            Notify(nameof(MinimalTrimming)); Notify(nameof(ModerateTrimming)); Notify(nameof(MaximumTrimming)); Notify(nameof(CustomTrimming));
+            Notify(nameof(TrimmingSummary)); InvalidateContext();
+        }
+    }
+    public bool MinimalTrimming { get => TrimmingMode == ContextTrimmingMode.Minimal; set { if (value) TrimmingMode = ContextTrimmingMode.Minimal; } }
+    public bool ModerateTrimming { get => TrimmingMode == ContextTrimmingMode.Moderate; set { if (value) TrimmingMode = ContextTrimmingMode.Moderate; } }
+    public bool MaximumTrimming { get => TrimmingMode == ContextTrimmingMode.Maximum; set { if (value) TrimmingMode = ContextTrimmingMode.Maximum; } }
+    public bool CustomTrimming { get => TrimmingMode == ContextTrimmingMode.Custom; set { if (value) TrimmingMode = ContextTrimmingMode.Custom; } }
+    private string trimmingInstructions = "";
+    public string TrimmingInstructions
+    {
+        get => trimmingInstructions;
+        set { if (Set(ref trimmingInstructions, value)) { Notify(nameof(InstructionsCount)); if (CustomTrimming) InvalidateContext(); } }
+    }
+    public string InstructionsCount => TrimmingInstructions.Length + "/1000";
+    public string TrimmingSummary => Text.Format("TrimmingSummary", ContextReducer.TargetCharacters(ContextLimit, TrimmingMode), ContextReducer.RetainedMessages(TrimmingMode));
+    private bool cleanerModelExpanded, chatModelExpanded;
+    public bool CleanerModelExpanded { get => cleanerModelExpanded; set => Set(ref cleanerModelExpanded, value); }
+    public bool ChatModelExpanded { get => chatModelExpanded; set => Set(ref chatModelExpanded, value); }
+    public string CleanerModelName => !UseAgent ? Text["SignalDisabled"] : string.IsNullOrWhiteSpace(AgentModel) ? Text["SelectCleaner"] : AgentModel;
+    public string AssistantModelName => !ModelConfigured ? Text["SelectAssistant"] : IsOllama ? LocalModel : ApiModel;
+    public string AssistantLocation => Text[IsOllama ? "OnThisComputer" : "RemoteModelHelp"];
+    private void NotifyModelLabels() { Notify(nameof(CleanerModelName)); Notify(nameof(AssistantModelName)); Notify(nameof(AssistantLocation)); }
+
     private int providerIndex;
     public int ProviderIndex
     {
         get => providerIndex;
-        set { if (value is >= 0 and <= 1 && Set(ref providerIndex, value)) { Notify(nameof(SelectedProvider)); ResetConversation(); Notify(nameof(IsOllama)); Notify(nameof(IsRemote)); Refresh(); } }
+        set { if (value is >= 0 and <= 1 && Set(ref providerIndex, value)) { Notify(nameof(SelectedProvider)); ResetChatConnection(); ResetConversation(); Notify(nameof(IsOllama)); Notify(nameof(IsRemote)); Refresh(); } }
     }
     public LocalizedOption? SelectedProvider
     {
@@ -123,13 +172,13 @@ public sealed class MainViewModel : Bindable, IDisposable
     public bool IsOllama => ProviderIndex == 0;
     public bool IsRemote => !IsOllama;
     private string ollamaEndpoint = "http://localhost:11434";
-    public string OllamaEndpoint { get => ollamaEndpoint; set { if (Set(ref ollamaEndpoint, value)) ResetConversation(); } }
+    public string OllamaEndpoint { get => ollamaEndpoint; set { if (Set(ref ollamaEndpoint, value)) { LocalModels.Clear(); ResetChatConnection(); ResetConversation(); } } }
     private string localModel = "";
-    public string LocalModel { get => localModel; set { if (Set(ref localModel, value)) ResetConversation(); } }
+    public string LocalModel { get => localModel; set { if (Set(ref localModel, value)) { Notify(nameof(SelectedLocalModel)); ResetChatConnection(); ResetConversation(); } } }
     private string apiEndpoint = "";
-    public string ApiEndpoint { get => apiEndpoint; set { if (Set(ref apiEndpoint, value)) ResetConversation(); } }
+    public string ApiEndpoint { get => apiEndpoint; set { if (Set(ref apiEndpoint, value)) { ResetChatConnection(); ResetConversation(); } } }
     private string apiModel = "";
-    public string ApiModel { get => apiModel; set { if (Set(ref apiModel, value)) ResetConversation(); } }
+    public string ApiModel { get => apiModel; set { if (Set(ref apiModel, value)) { ResetChatConnection(); ResetConversation(); } } }
     private string apiKey = "";
     public string ApiKey
     {
@@ -137,7 +186,7 @@ public sealed class MainViewModel : Bindable, IDisposable
         set
         {
             if (!Set(ref apiKey, value)) return;
-            ResetConversation();
+            ResetChatConnection(); ResetConversation();
             if (session is not null && !string.IsNullOrWhiteSpace(value))
             {
                 session.AddEntity(value, "SECRET");
@@ -154,7 +203,7 @@ public sealed class MainViewModel : Bindable, IDisposable
         set
         {
             if (!Set(ref contextText, value)) return;
-            ContextApproved = false;
+            ContextApproved = false; Notify(nameof(Summary));
             ResetConversation();
         }
     }
@@ -186,6 +235,7 @@ public sealed class MainViewModel : Bindable, IDisposable
     public bool ModelConfigured => !string.IsNullOrWhiteSpace(IsOllama ? LocalModel : ApiModel) && !string.IsNullOrWhiteSpace(IsOllama ? OllamaEndpoint : ApiEndpoint);
     public bool CanCompose => Ready && ContextApproved && ModelConfigured && !Busy;
     public bool HasChat => Chat.Count > 0;
+    public bool ShowWelcome => !HasChat && !HasPending;
     private string statusKey = "StatusInitial";
     private object[] statusArguments = [];
     public string Status => Text.Format(statusKey, statusArguments);
@@ -197,16 +247,32 @@ public sealed class MainViewModel : Bindable, IDisposable
     { error = value; Notify(nameof(Error)); Notify(nameof(HasError)); }
     public bool HasError => error is not null;
     public string Summary => scan is null ? Text["ContextNotReady"] :
-        Text.Format("ScanSummary", scan.Included, scan.Characters, scan.Skipped) + (scan.LimitReached ? Text["LimitReached"] : "");
+        Text.Format("ScanSummary", scan.Included, ContextText.Length, scan.Skipped) + (scan.LimitReached ? Text["LimitReached"] : "");
     public string CountSummary => Text.Format("ReplacementCount", session?.Count ?? 0);
     private int selectedTab;
-    public int SelectedTab { get => selectedTab; set => Set(ref selectedTab, value); }
+    public int SelectedTab
+    {
+        get => selectedTab;
+        set { if (value is >= 0 and <= 3 && Set(ref selectedTab, value)) { Notify(nameof(IsChatView)); Notify(nameof(IsContextView)); Notify(nameof(IsReplacementsView)); Notify(nameof(IsFilesView)); } }
+    }
+    public bool IsChatView => SelectedTab == 0;
+    public bool IsContextView => SelectedTab == 1;
+    public bool IsReplacementsView => SelectedTab == 2;
+    public bool IsFilesView => SelectedTab == 3;
+    public RelayCommand ShowChatCommand { get; }
+    public RelayCommand ShowContextCommand { get; }
+    public RelayCommand ShowReplacementsCommand { get; }
+    public RelayCommand ShowFilesCommand { get; }
+
     private bool restoreLocally;
     public bool RestoreLocally { get => restoreLocally; set { if (Set(ref restoreLocally, value)) UpdateDisplayedAnswers(); } }
     private readonly Dictionary<ChatRow, string> safeAnswers = new();
 
     public RelayCommand BrowseCommand { get; }
     public RelayCommand RefreshModelsCommand { get; }
+    public RelayCommand RefreshAgentModelsCommand { get; }
+    public RelayCommand CheckCleanerCommand { get; }
+    public RelayCommand CheckChatCommand { get; }
     public RelayCommand PrepareCommand { get; }
     public RelayCommand PreviewPromptCommand { get; }
     public RelayCommand SendCommand { get; }
@@ -216,11 +282,21 @@ public sealed class MainViewModel : Bindable, IDisposable
     public RelayCommand ClearSessionCommand { get; }
     public RelayCommand DismissErrorCommand { get; }
 
-    public MainViewModel(ModelClient? client = null)
+    public MainViewModel(ModelClient client, ContextPreparationService preparation)
     {
-        this.client = client ?? new ModelClient();
-        BrowseCommand = Command(() => RunAsync(async ct => { string? picked = PickFolderAsync is null ? null : await PickFolderAsync(); if (picked is not null) Folder = picked; }), () => !Busy);
+        this.client = client;
+        this.preparation = preparation;
+        ShowChatCommand = Command(() => SelectedTab = 0);
+        ShowContextCommand = Command(() => SelectedTab = 1);
+        ShowReplacementsCommand = Command(() => SelectedTab = 2);
+        ShowFilesCommand = Command(() => SelectedTab = 3);
+        LocalModels.CollectionChanged += (_, _) => { Notify(nameof(HasLocalModels)); Notify(nameof(SelectedLocalModel)); };
+        AgentModels.CollectionChanged += (_, _) => { Notify(nameof(HasAgentModels)); Notify(nameof(SelectedAgentModel)); };
+        BrowseCommand = Command(() => RunAsync(async ct => { string? picked = PickFolderAsync is null ? null : await PickFolderAsync(); ct.ThrowIfCancellationRequested(); if (picked is not null) Folder = picked; }), () => !Busy);
         RefreshModelsCommand = Command(() => RunAsync(RefreshModelsAsync), () => !Busy);
+        RefreshAgentModelsCommand = Command(() => RunAsync(RefreshAgentModelsAsync), () => !Busy && UseAgent);
+        CheckCleanerCommand = Command(() => RunAsync(ct => CheckConnectionAsync(true, ct)), () => !Busy && UseAgent && !string.IsNullOrWhiteSpace(AgentModel));
+        CheckChatCommand = Command(() => RunAsync(ct => CheckConnectionAsync(false, ct)), () => !Busy && ModelConfigured);
         PrepareCommand = Command(() => RunAsync(PrepareAsync), () => !Busy && !string.IsNullOrWhiteSpace(Folder));
         PreviewPromptCommand = Command(() => RunAsync(PreviewPromptAsync), () => CanCompose && !string.IsNullOrWhiteSpace(Prompt) && !HasPending);
         SendCommand = Command(() => RunAsync(SendAsync), () => CanCompose && HasPending && !string.IsNullOrWhiteSpace(PendingText));
@@ -235,7 +311,7 @@ public sealed class MainViewModel : Bindable, IDisposable
     { var result = new RelayCommand(action, canExecute); commands.Add(result); return result; }
     private void Refresh()
     {
-        Notify(nameof(Ready)); Notify(nameof(CanReview)); Notify(nameof(ModelConfigured)); Notify(nameof(CanCompose)); Notify(nameof(HasChat));
+        Notify(nameof(Ready)); Notify(nameof(CanReview)); Notify(nameof(ModelConfigured)); Notify(nameof(CanCompose)); Notify(nameof(HasChat)); Notify(nameof(ShowWelcome)); NotifyModelLabels();
         foreach (var command in commands) command.Refresh();
     }
     private ProtectionOptions Options() => new((ProtectionProfile)Math.Clamp(ProfileIndex, 0, 3),
@@ -267,44 +343,110 @@ public sealed class MainViewModel : Bindable, IDisposable
 
     private async void RunAsync(Func<CancellationToken, Task> action)
     {
-        if (Busy) return;
+        if (Busy || disposed) return;
         Busy = true; SetError(null); operation = new();
         try { await action(operation.Token); }
-        catch (OperationCanceledException) { SetStatus("StatusCancelled"); }
-        catch (SafeOperationException e) { SetError(e); SetStatus("StatusStopped"); }
-        catch { SetError(new SafeOperationException("UnexpectedError")); SetStatus("StatusStopped"); }
-        finally { operation.Dispose(); operation = null; Busy = false; UpdateReplacements(); }
+        catch (OperationCanceledException) { if (!disposed) SetStatus("StatusCancelled"); }
+        catch (SafeOperationException e) { if (!disposed) { SetError(e); SetStatus("StatusStopped"); } }
+        catch { if (!disposed) { SetError(new SafeOperationException("UnexpectedError")); SetStatus("StatusStopped"); } }
+        finally { operation.Dispose(); operation = null; Busy = false; if (!disposed) UpdateReplacements(); }
+    }
+
+    private ConnectionState cleanerConnection, chatConnection;
+    private int cleanerRevision, chatRevision;
+    private SafeOperationException? cleanerConnectionError, chatConnectionError;
+    public ConnectionState CleanerConnectionState => UseAgent ? cleanerConnection : ConnectionState.Disabled;
+    public ConnectionState ChatConnectionState => chatConnection;
+    public string CleanerConnectionLabel => Text["Signal" + CleanerConnectionState];
+    public string ChatConnectionLabel => Text["Signal" + ChatConnectionState];
+    public string CleanerConnectionColor => ConnectionColor(CleanerConnectionState);
+    public string ChatConnectionColor => ConnectionColor(ChatConnectionState);
+    public string CleanerConnectionTip => !UseAgent ? Text["RulesOnlyHint"] : cleanerConnectionError?.GetLocalizedMessage(Text)
+        ?? Text[cleanerConnection == ConnectionState.Connected ? "ConnectionVerifiedHint" : "CheckConnectionHint"];
+    public string ChatConnectionTip => chatConnectionError?.GetLocalizedMessage(Text)
+        ?? Text[chatConnection == ConnectionState.Connected ? "ConnectionVerifiedHint" : "CheckConnectionHint"];
+    private static string ConnectionColor(ConnectionState state) => state switch
+    {
+        ConnectionState.Connected => "#B6E2CA", ConnectionState.Checking or ConnectionState.Unavailable => "#E2BE78",
+        ConnectionState.Failed => "#EE9099", _ => "#7B7E86"
+    };
+    private void NotifyConnections()
+    {
+        foreach (string property in new[] { nameof(CleanerConnectionState), nameof(ChatConnectionState), nameof(CleanerConnectionLabel),
+            nameof(ChatConnectionLabel), nameof(CleanerConnectionColor), nameof(ChatConnectionColor), nameof(CleanerConnectionTip), nameof(ChatConnectionTip) }) Notify(property);
+    }
+    private void ResetCleanerConnection() { cleanerRevision++; cleanerConnection = ConnectionState.Unchecked; cleanerConnectionError = null; NotifyConnections(); }
+    private void ResetChatConnection() { chatRevision++; chatConnection = ConnectionState.Unchecked; chatConnectionError = null; NotifyConnections(); }
+    private void SetConnection(bool cleaner, ConnectionState state, SafeOperationException? error = null)
+    {
+        if (cleaner) { cleanerConnection = state; cleanerConnectionError = error; }
+        else { chatConnection = state; chatConnectionError = error; }
+        NotifyConnections();
+    }
+    private async Task CheckConnectionAsync(bool cleaner, CancellationToken ct)
+    {
+        int revision = cleaner ? cleanerRevision : chatRevision;
+        bool Current() => !disposed && revision == (cleaner ? cleanerRevision : chatRevision);
+        var settings = cleaner ? new ModelSettings(ModelProvider.Ollama, AgentEndpoint, AgentModel) : Settings();
+        SetConnection(cleaner, ConnectionState.Checking);
+        SetStatus(cleaner ? "StatusCheckingCleaner" : "StatusCheckingAssistant");
+        try
+        {
+            if (cleaner) await client.EnsureLocalModelAsync(settings.Endpoint, settings.Model, ct);
+            else await client.CheckChatModelAsync(settings, ct);
+            if (Current())
+            {
+                SetConnection(cleaner, ConnectionState.Connected);
+                SetStatus(cleaner ? "StatusCleanerConnected" : "StatusAssistantConnected");
+            }
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            var error = new SafeOperationException("ModelTimeout");
+            if (Current()) SetConnection(cleaner, ConnectionState.Failed, error);
+            throw error;
+        }
+        catch (OperationCanceledException) { if (Current()) SetConnection(cleaner, ConnectionState.Unchecked); throw; }
+        catch (SafeOperationException e)
+        {
+            if (Current()) SetConnection(cleaner, e.MessageKey == "ConnectionCheckUnavailable" ? ConnectionState.Unavailable : ConnectionState.Failed, e);
+            throw;
+        }
+        catch { if (Current()) SetConnection(cleaner, ConnectionState.Failed); throw; }
+    }
+    private async Task RefreshAgentModelsAsync(CancellationToken ct)
+    {
+        SetStatus("StatusCheckingOllama");
+        var models = await client.ListLocalModelsAsync(AgentEndpoint, ct);
+        ct.ThrowIfCancellationRequested();
+        AgentModels.Clear(); foreach (string model in models) AgentModels.Add(model);
+        if (string.IsNullOrWhiteSpace(AgentModel) && models.Count > 0) AgentModel = models[0];
+        SetStatus(models.Count > 0 ? "StatusModelsFound" : "StatusNoModels", models.Count);
     }
 
     private async Task RefreshModelsAsync(CancellationToken ct)
     {
         SetStatus("StatusCheckingOllama");
-        string endpoint = IsOllama ? OllamaEndpoint : AgentEndpoint;
-        var models = await client.ListLocalModelsAsync(endpoint, ct);
+        var models = await client.ListLocalModelsAsync(OllamaEndpoint, ct);
+        ct.ThrowIfCancellationRequested();
         LocalModels.Clear(); foreach (string model in models) LocalModels.Add(model);
         if (string.IsNullOrWhiteSpace(LocalModel) && models.Count > 0) LocalModel = models[0];
-        if (string.IsNullOrWhiteSpace(AgentModel) && models.Count > 0) AgentModel = models[0];
         SetStatus(models.Count > 0 ? "StatusModelsFound" : "StatusNoModels", models.Count);
     }
 
     private async Task PrepareAsync(CancellationToken ct)
     {
         InvalidateContext();
-        var options = Options();
-        var nextSession = new RedactionSession(options);
-        if (!string.IsNullOrWhiteSpace(ApiKey)) nextSession.AddEntity(ApiKey, "SECRET");
-        if (UseAgent) await client.EnsureLocalModelAsync(AgentEndpoint, AgentModel, ct);
+        var settings = new ContextPreparationSettings(Folder, Options(), ContextLimit, TrimmingMode, TrimmingInstructions,
+            UseAgent, new(ModelProvider.Ollama, AgentEndpoint, AgentModel), ApiKey);
+        if (UseAgent) await CheckConnectionAsync(true, ct);
         SetStatus(UseAgent ? "StatusAgentWorking" : "StatusCollecting");
-        var progress = new Progress<int>(number => SetStatus("ProcessingFile", number));
-        // CPU scanning does not block the UI thread.
-        var nextScan = await Task.Run(() => new FolderCollector().CollectAsync(Folder, nextSession,
-            UseAgent ? (text, token) => client.DiscoverEntitiesAsync(text, options, nextSession, AgentEndpoint, AgentModel, token) : null,
-            progress, ct, ContextLimit), ct);
+        var progress = new Progress<int>(number => { if (!disposed && Busy && operation is { } current && current.Token == ct) { if (number == 0) SetStatus("StatusTrimming"); else SetStatus("ProcessingFile", number); } });
+        var prepared = await preparation.PrepareAsync(settings, progress, ct);
         ct.ThrowIfCancellationRequested();
-        if (nextScan.Included == 0) throw new SafeOperationException("NoTextFiles");
-        session = nextSession; scan = nextScan;
-        Files.Clear(); foreach (var file in nextScan.Files) Files.Add(file);
-        ContextText = nextScan.Context;
+        session = prepared.Session; scan = prepared.Snapshot;
+        Files.Clear(); foreach (var file in prepared.Snapshot.Files) Files.Add(file);
+        ContextText = prepared.Text;
         Notify(nameof(Summary));
         SelectedTab = 1; UpdateReplacements(); Refresh();
         SetStatus("StatusReviewContext");
@@ -316,6 +458,7 @@ public sealed class MainViewModel : Bindable, IDisposable
         if (Prompt.Length > 16_000) throw new SafeOperationException("PromptTooLong");
         SetStatus("StatusAnonymizingPrompt");
         if (UseAgent) await client.DiscoverEntitiesAsync(Prompt, Options(), session!, AgentEndpoint, AgentModel, ct);
+        ct.ThrowIfCancellationRequested();
         string safe = session!.Sanitize(Prompt);
         // Newly found entities may invalidate the old reviewed context. Ask for another review.
         string updatedContext = session.Sanitize(ContextText);
@@ -337,6 +480,7 @@ public sealed class MainViewModel : Bindable, IDisposable
         SetStatus("StatusCheckingMessage");
         // The user can edit the safe preview. Inspect those edits locally as well.
         if (UseAgent) await client.DiscoverEntitiesAsync(PendingText, Options(), session!, AgentEndpoint, AgentModel, ct);
+        ct.ThrowIfCancellationRequested();
         string outgoing = session!.Sanitize(PendingText);
         string updatedContext = session.Sanitize(ContextText);
         if (updatedContext != ContextText)
@@ -354,18 +498,23 @@ public sealed class MainViewModel : Bindable, IDisposable
         var userRow = new ChatRow(Text["You"], outgoing);
         var modelRow = new ChatRow(settings.Model, "", true);
         Chat.Add(userRow); Chat.Add(modelRow); Refresh(); ScrollChat?.Invoke();
-        var nextHistory = history.Append(new ChatMessage("user", outgoing)).ToArray();
+        var nextHistory = ContextReducer.SelectHistory(history, new ChatMessage("user", outgoing), TrimmingMode);
         var streamed = new StringBuilder();
         bool success = false;
+        int connectionRevision = chatRevision;
+        SetConnection(false, ConnectionState.Checking);
         SetStatus(IsOllama ? "StatusLocalReply" : "StatusRemoteReply");
         try
         {
             string answer = await client.ChatAsync(settings, ContextText, nextHistory, session, delta =>
             {
+                if (disposed || ct.IsCancellationRequested) return;
                 streamed.Append(delta);
                 modelRow.Text = streamed.ToString();
                 ScrollChat?.Invoke();
             }, ct);
+            ct.ThrowIfCancellationRequested();
+            if (!disposed && connectionRevision == chatRevision) SetConnection(false, ConnectionState.Connected);
             string safeAnswer = session.Sanitize(answer);
             history.Add(new("user", outgoing)); history.Add(new("assistant", safeAnswer));
             safeAnswers[modelRow] = safeAnswer;
@@ -373,6 +522,9 @@ public sealed class MainViewModel : Bindable, IDisposable
             success = true; Prompt = ""; ClearPending();
             SetStatus("StatusReplyReceived");
         }
+        catch (OperationCanceledException) { if (!disposed && connectionRevision == chatRevision) SetConnection(false, ConnectionState.Unchecked); throw; }
+        catch (SafeOperationException e) { if (!disposed && connectionRevision == chatRevision) SetConnection(false, ConnectionState.Failed, e); throw; }
+        catch { if (!disposed && connectionRevision == chatRevision) SetConnection(false, ConnectionState.Failed); throw; }
         finally
         {
             if (!success)
@@ -384,5 +536,13 @@ public sealed class MainViewModel : Bindable, IDisposable
         }
     }
 
-    public void Dispose() { operation?.Cancel(); client.Dispose(); session = null; history.Clear(); safeAnswers.Clear(); }
+    public void Dispose()
+    {
+        if (disposed) return;
+        disposed = true; operation?.Cancel(); client.Dispose(); session = null; scan = null;
+        history.Clear(); safeAnswers.Clear(); Chat.Clear(); Files.Clear(); Replacements.Clear();
+        folder = apiKey = customTerms = trimmingInstructions = prompt = pendingText = contextText = "";
+        LocalModels.Clear(); AgentModels.Clear();
+        contextApproved = hasPending = false; PickFolderAsync = null;
+    }
 }

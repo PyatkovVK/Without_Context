@@ -1,6 +1,6 @@
 # Third-party components
 
-ContextGuard uses the following open-source components. Their source, licenses and notices remain applicable to the binaries distributed with this application.
+Without Context uses the following open-source components. Their source, licenses and notices remain applicable to the binaries distributed with this application.
 
 - Avalonia / Avalonia Desktop / Fluent theme / Avalonia Headless: MIT — https://github.com/AvaloniaUI/Avalonia
 - Inter font: SIL Open Font License 1.1 — https://github.com/rsms/inter

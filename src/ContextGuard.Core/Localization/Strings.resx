@@ -397,4 +397,238 @@ company name, surname, project…</value>
   <data name="You" xml:space="preserve">
     <value>YOU</value>
   </data>
+  <data name="Chats" xml:space="preserve">
+    <value>Chats</value>
+  </data>
+  <data name="Models" xml:space="preserve">
+    <value>Models</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="DeleteChat" xml:space="preserve">
+    <value>Delete this chat</value>
+  </data>
+  <data name="ConversationTitle" xml:space="preserve">
+    <value>Chat {0}</value>
+  </data>
+  <data name="ChatContextReady" xml:space="preserve">
+    <value>Context prepared</value>
+  </data>
+  <data name="ChatNoContext" xml:space="preserve">
+    <value>No context yet</value>
+  </data>
+  <data name="ChatsMemoryHint" xml:space="preserve">
+    <value>Chats stay in memory until you close the app.</value>
+  </data>
+  <data name="HideChats" xml:space="preserve">
+    <value>Collapse chats</value>
+  </data>
+  <data name="ShowChats" xml:space="preserve">
+    <value>Expand chats</value>
+  </data>
+  <data name="HideModels" xml:space="preserve">
+    <value>Collapse models</value>
+  </data>
+  <data name="ShowModels" xml:space="preserve">
+    <value>Expand models</value>
+  </data>
+  <data name="CleanerModel" xml:space="preserve">
+    <value>Cleaner</value>
+  </data>
+  <data name="AssistantModel" xml:space="preserve">
+    <value>Assistant</value>
+  </data>
+  <data name="EnableCleaner" xml:space="preserve">
+    <value>Use a local Ollama cleaner</value>
+  </data>
+  <data name="CleanerRulesHelp" xml:space="preserve">
+    <value>Local rules always run. Add a downloaded Ollama model for another check.</value>
+  </data>
+  <data name="Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="PrepareShort" xml:space="preserve">
+    <value>Prepare context</value>
+  </data>
+  <data name="ReviewMessageShort" xml:space="preserve">
+    <value>Review the anonymized message</value>
+  </data>
+  <data name="SimpleWelcomeHelp" xml:space="preserve">
+    <value>Choose a folder, prepare and review its context, then describe your task.</value>
+  </data>
+  <data name="SettingsHelp" xml:space="preserve">
+    <value>Language and anonymization preferences for your workspace.</value>
+  </data>
+  <data name="ProtectionSettings" xml:space="preserve">
+    <value>Anonymization profile</value>
+  </data>
+  <data name="SettingsRulesHelp" xml:space="preserve">
+    <value>Changing the rules or context limit requires preparing and reviewing context again in this chat.</value>
+  </data>
+  <data name="MemoryOnlyHelp" xml:space="preserve">
+    <value>Context, keys and conversations stay in memory. Nothing is saved to disk.</value>
+  </data>
+  <data name="ClearAllChats" xml:space="preserve">
+    <value>Clear all chats and keys</value>
+  </data>
+  <data name="SignalUnchecked" xml:space="preserve">
+    <value>Not checked</value>
+  </data>
+  <data name="SignalChecking" xml:space="preserve">
+    <value>Connecting…</value>
+  </data>
+  <data name="SignalConnected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="SignalFailed" xml:space="preserve">
+    <value>Connection failed</value>
+  </data>
+  <data name="SignalDisabled" xml:space="preserve">
+    <value>Local rules</value>
+  </data>
+  <data name="SignalUnavailable" xml:space="preserve">
+    <value>Not verified</value>
+  </data>
+  <data name="CheckConnectionHint" xml:space="preserve">
+    <value>Use Connect in the Models sidebar to check the selected model.</value>
+  </data>
+  <data name="ConnectionVerifiedHint" xml:space="preserve">
+    <value>The selected model passed its last connection check. Connect again to refresh.</value>
+  </data>
+  <data name="RulesOnlyHint" xml:space="preserve">
+    <value>No AI cleaner is enabled. Built-in anonymization rules run locally.</value>
+  </data>
+  <data name="StatusCheckingCleaner" xml:space="preserve">
+    <value>Checking the local cleaner connection…</value>
+  </data>
+  <data name="StatusCheckingAssistant" xml:space="preserve">
+    <value>Checking the assistant connection…</value>
+  </data>
+  <data name="StatusCleanerConnected" xml:space="preserve">
+    <value>The local cleaner is connected.</value>
+  </data>
+  <data name="StatusAssistantConnected" xml:space="preserve">
+    <value>The selected assistant is connected.</value>
+  </data>
+  <data name="ApiConnectionHelp" xml:space="preserve">
+    <value>Connect checks the API model list without sending context or generating a reply.</value>
+  </data>
+  <data name="ConnectionCheckUnavailable" xml:space="preserve">
+    <value>This API does not expose a supported model-list check. Its connection will be verified after a successful chat request.</value>
+  </data>
+  <data name="ModelNotListed" xml:space="preserve">
+    <value>The selected model is not in the API model list. Check its ID and access permissions.</value>
+  </data>
+  <data name="ChatSettings" xml:space="preserve">
+    <value>Chat settings</value>
+  </data>
+  <data name="FolderContext" xml:space="preserve">
+    <value>Folder context</value>
+  </data>
+  <data name="BackToChat" xml:space="preserve">
+    <value>Back to chat</value>
+  </data>
+  <data name="RecentChats" xml:space="preserve">
+    <value>Recent chats</value>
+  </data>
+  <data name="ArchivedChats" xml:space="preserve">
+    <value>Archived chats</value>
+  </data>
+  <data name="BackToChats" xml:space="preserve">
+    <value>Back to chats</value>
+  </data>
+  <data name="ArchiveCount" xml:space="preserve">
+    <value>Archive ({0})</value>
+  </data>
+  <data name="ArchiveChat" xml:space="preserve">
+    <value>Archive chat</value>
+  </data>
+  <data name="ArchiveChatHelp" xml:space="preserve">
+    <value>Hide from the chat list</value>
+  </data>
+  <data name="RestoreChat" xml:space="preserve">
+    <value>Restore chat</value>
+  </data>
+  <data name="RestoreChatHelp" xml:space="preserve">
+    <value>Return to the chat list</value>
+  </data>
+  <data name="DeleteChatHelp" xml:space="preserve">
+    <value>This action cannot be undone</value>
+  </data>
+  <data name="LocalCleanerTitle" xml:space="preserve">
+    <value>Local privacy model</value>
+  </data>
+  <data name="TaskModelTitle" xml:space="preserve">
+    <value>Model for your requests</value>
+  </data>
+  <data name="SelectCleaner" xml:space="preserve">
+    <value>Select local model</value>
+  </data>
+  <data name="SelectAssistant" xml:space="preserve">
+    <value>Select a model</value>
+  </data>
+  <data name="OnThisComputer" xml:space="preserve">
+    <value>Runs on this computer</value>
+  </data>
+  <data name="RemoteModelHelp" xml:space="preserve">
+    <value>Receives reviewed, anonymized context</value>
+  </data>
+  <data name="MessagePlaceholder" xml:space="preserve">
+    <value>Write a message…</value>
+  </data>
+  <data name="ContextTrimming" xml:space="preserve">
+    <value>Context trimming</value>
+  </data>
+  <data name="TrimmingHelp" xml:space="preserve">
+    <value>Applied locally before context review. Only recent message pairs are sent; visible history stays intact.</value>
+  </data>
+  <data name="TrimMinimal" xml:space="preserve">
+    <value>Minimal</value>
+  </data>
+  <data name="TrimMinimalHelp" xml:space="preserve">
+    <value>More folder context. Up to 12 recent messages.</value>
+  </data>
+  <data name="TrimModerate" xml:space="preserve">
+    <value>Moderate</value>
+  </data>
+  <data name="TrimModerateHelp" xml:space="preserve">
+    <value>Balanced context size. Up to 6 recent messages.</value>
+  </data>
+  <data name="TrimMaximum" xml:space="preserve">
+    <value>Maximum</value>
+  </data>
+  <data name="TrimMaximumHelp" xml:space="preserve">
+    <value>Shorter context. Up to 2 recent messages.</value>
+  </data>
+  <data name="TrimCustom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="TrimCustomHelp" xml:space="preserve">
+    <value>Your local cleaner applies the rules below to folder context.</value>
+  </data>
+  <data name="TrimInstructionsHint" xml:space="preserve">
+    <value>Keep the goals, key facts and relevant code. Remove repetition and details unrelated to the task.</value>
+  </data>
+  <data name="TrimmingSummary" xml:space="preserve">
+    <value>Prepared context: up to {0} characters. History sent: up to {1} recent messages plus your new message.</value>
+  </data>
+  <data name="CustomTrimmingNeedsLocalModel" xml:space="preserve">
+    <value>Custom trimming requires an enabled downloaded Ollama cleaner. Select it in Chat settings.</value>
+  </data>
+  <data name="TrimmingInstructionsRequired" xml:space="preserve">
+    <value>Enter custom context trimming instructions first.</value>
+  </data>
+  <data name="TrimmingInstructionsTooLong" xml:space="preserve">
+    <value>Trimming instructions must not exceed 1000 characters.</value>
+  </data>
+  <data name="TrimmedContextEmpty" xml:space="preserve">
+    <value>Context trimming returned no usable text. Change the rules or choose another mode.</value>
+  </data>
+  <data name="StatusTrimming" xml:space="preserve">
+    <value>Trimming context locally…</value>
+  </data>
 </root>
