@@ -631,8 +631,14 @@
   <data name="Review" xml:space="preserve">
     <value>Просмотр</value>
   </data>
-  <data name="ChatsStorageHint" xml:space="preserve">
-    <value>Чаты сохраняются локально. Экспорт — в настройках чата.</value>
+  <data name="DeleteConfirmationTitle" xml:space="preserve">
+    <value>Удалить этот диалог?</value>
+  </data>
+  <data name="DeleteConfirmationMessage" xml:space="preserve">
+    <value>В этом чате есть история сообщений. Удаление навсегда уберёт переписку с этого устройства. Экспортированные копии сохранятся.</value>
+  </data>
+  <data name="CancelDeletion" xml:space="preserve">
+    <value>Отмена</value>
   </data>
   <data name="ChatStorageFolder" xml:space="preserve">
     <value>Папка хранения чатов</value>
@@ -687,5 +693,11 @@
   </data>
   <data name="ChatActionsLabel" xml:space="preserve">
     <value>Действия с чатом</value>
+  </data>
+  <data name="SidebarStateReadFailed" xml:space="preserve">
+    <value>Не удалось загрузить состояние боковых панелей. Проверьте доступ к папке локальных данных приложения.</value>
+  </data>
+  <data name="SidebarStateWriteFailed" xml:space="preserve">
+    <value>Не удалось сохранить состояние боковых панелей. Проверьте свободное место и права доступа к папке локальных данных приложения.</value>
   </data>
 </root>

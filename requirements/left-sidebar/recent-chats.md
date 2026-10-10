@@ -15,6 +15,7 @@ Select a conversation and see its topic.
 - Switching chats and list actions are unavailable during a main operation.
 - Background title generation does not block the list.
 - Chats are stored locally and restored after restarting the application.
+- Do not display a local-storage/export hint at the bottom of the sidebar. Document storage and export in the project README instead.
 
 ## Acceptance criteria
 

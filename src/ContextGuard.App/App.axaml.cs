@@ -13,7 +13,16 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Startup verification must not load, migrate or overwrite the user's real chat folder.
-            desktop.MainWindow = Program.SmokeStartup ? new MainWindow(new WorkspaceViewModel()) : new MainWindow();
+            WorkspaceViewModel workspace;
+            if (Program.SmokeStartup) workspace = new WorkspaceViewModel();
+            else
+            {
+                string dataFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WithoutContext");
+                workspace = new WorkspaceViewModel(
+                    archive: new Core.ChatArchiveService(new Core.JsonDirectoryChatStore(System.IO.Path.Combine(dataFolder, "chats"))),
+                    sidebarState: new SidebarStateService(dataFolder));
+            }
+            desktop.MainWindow = new MainWindow(workspace);
             if (Program.SmokeStartup)
             {
                 desktop.MainWindow.Opacity = 0;

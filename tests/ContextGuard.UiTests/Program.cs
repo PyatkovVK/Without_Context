@@ -4,6 +4,8 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ContextGuard.App;
@@ -85,15 +87,58 @@ internal static class Program
             True(workspace.LanguageIndex == 0 && VisibleText(window, "Start with your folder"), "English is the default");
             True(vm.CleanerConnectionState == ConnectionState.Disabled && vm.ChatConnectionState == ConnectionState.Unchecked, "Signals never pretend unverified models are connected");
             True(window.FindControl<Border>("ChatsSidebar")!.Bounds.Width == 310 && window.FindControl<Border>("ModelsSidebar")!.Bounds.Width == 350, "Sidebars render expanded");
+            True(!window.FindControl<Button>("ArchivesButton")!.IsVisible && !workspace.HasArchivedChats, "An empty archive has no sidebar entry");
+            True(!VisibleText(window, "Chats are saved locally. Export from chat settings."), "Local storage information is not repeated in the sidebar");
+            True(window.FindControl<Button>("ToggleChatsButton")!.Bounds.Width == 44 && window.FindControl<Button>("ToggleModelsButton")!.Bounds.Width == 44,
+                "Both sidebar toggles have larger accessible hit areas");
+            CheckCenteredToggleIcon(window, "ToggleChatsButton"); CheckCenteredToggleIcon(window, "ToggleModelsButton");
+            True(!window.FindControl<Button>("CollapsedSettingsButton")!.IsVisible, "Collapsed settings icon is hidden in the expanded sidebar");
+            CheckStableHover(window, window.FindControl<Button>("NewChatButton")!);
             True(window.FindControl<RadioButton>("ModerateTrimRadio")!.IsChecked == true, "Moderate trimming is selected by default");
             window.FindControl<RadioButton>("MinimalTrimRadio")!.IsChecked = true; Flush();
             True(vm.TrimmingMode == ContextTrimmingMode.Minimal, "Trimming radio changes the real setting");
             vm.ModerateTrimming = true;
             SaveFrame(window, "start");
+            double footerPosition = window.FindControl<Button>("SettingsButton")!.TranslatePoint(default, window)!.Value.Y;
+            workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations(180);
+            double inFlightWidth = window.FindControl<Border>("ChatsSidebar")!.Bounds.Width;
+            True(inFlightWidth > 72 && inFlightWidth < 310, "Sidebar resizing progresses through intermediate widths");
+            SaveFrame(window, "sidebar-motion");
+            workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations(100);
             workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations();
             SaveFrame(window, "collapsed");
-            True(window.FindControl<Border>("ChatsSidebar")!.Bounds.Width == 56 && window.FindControl<Border>("ModelsSidebar")!.Bounds.Width == 56, "Both sidebars collapse");
+            True(window.FindControl<Border>("ChatsSidebar")!.Bounds.Width == 72 && window.FindControl<Border>("ModelsSidebar")!.Bounds.Width == 72, "Both sidebars collapse with room for the enlarged toggles");
+            CheckInsideSidebar(window, "ToggleChatsButton", "ChatsSidebar");
+            CheckInsideSidebar(window, "CollapsedNewChatButton", "ChatsSidebar");
+            CheckInsideSidebar(window, "ToggleModelsButton", "ModelsSidebar");
+            CheckInsideSidebar(window, "CollapsedSettingsButton", "ChatsSidebar");
+            CheckCenteredToggleIcon(window, "ToggleChatsButton"); CheckCenteredToggleIcon(window, "ToggleModelsButton");
+            CheckStableHover(window, window.FindControl<Button>("ToggleChatsButton")!);
+            SaveFrame(window, "collapsed-hover");
+            True(Math.Abs(window.FindControl<Button>("SettingsButton")!.TranslatePoint(default, window)!.Value.Y - footerPosition) < 1 &&
+                window.FindControl<ListBox>("ConversationsList")!.IsVisible && !window.FindControl<ListBox>("ConversationsList")!.IsHitTestVisible,
+                "Sidebar content retains layout during fades without remaining interactive");
+            True(!window.FindControl<Button>("NewChatButton")!.IsEffectivelyEnabled && window.FindControl<Button>("CollapsedNewChatButton")!.IsEffectivelyEnabled,
+                "Only the visible new-chat control is keyboard-accessible");
+            var collapsedSettings = window.FindControl<Button>("CollapsedSettingsButton")!;
+            True(collapsedSettings.IsVisible && collapsedSettings.IsEffectivelyEnabled && collapsedSettings.IsHitTestVisible &&
+                !window.FindControl<Button>("SettingsButton")!.IsEffectivelyEnabled,
+                "Collapsed settings are accessible while expanded settings are disabled");
+            CheckStableHover(window, collapsedSettings);
+            var settingsPoint = collapsedSettings.TranslatePoint(new Point(22, 22), window)!.Value;
+            window.MouseDown(settingsPoint, MouseButton.Left, RawInputModifiers.None);
+            window.MouseUp(settingsPoint, MouseButton.Left, RawInputModifiers.None); SettleAnimations();
+            var collapsedDialog = window.OwnedWindows.OfType<SettingsWindow>().Single();
+            True(workspace.SettingsOpen && !workspace.ChatsSidebarOpen && workspace.Active == first,
+                "Clicking the collapsed settings icon opens the same modal without expanding or changing chats");
+            collapsedDialog.FindControl<ComboBox>("LanguageSelector")!.SelectedIndex = 1; Flush();
+            True((ToolTip.GetTip(collapsedSettings) as string) == "Настройки", "Collapsed settings tooltip follows the selected language");
+            collapsedDialog.FindControl<ComboBox>("LanguageSelector")!.SelectedIndex = 0; Flush();
+            collapsedDialog.Close(); SettleAnimations();
+            True(!workspace.SettingsOpen && !workspace.ChatsSidebarOpen && collapsedSettings.IsEffectivelyEnabled,
+                "Closing settings restores the collapsed icon without expanding the sidebar");
             workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations();
+            True(!collapsedSettings.IsVisible && !collapsedSettings.IsEffectivelyEnabled, "Expanded sidebar has no hidden focusable settings icon");
 
             var settings = OpenSettings(window, workspace);
             True(settings.IsVisible && settings.Owner == window, "Settings open as an owned modal window");
@@ -116,6 +161,8 @@ internal static class Program
             vm.Folder = folderA;
             vm.PrepareCommand.Execute(null); Wait(vm);
             True(vm.Ready && !vm.ContextApproved && !vm.CanCompose, "Context preparation still requires review");
+            True(window.GetVisualDescendants().OfType<Control>().Count(c => SmoothVisibility.GetMotion(c) == VisibilityMotion.View && c.IsVisible) == 1,
+                "Switching documents never overlays outgoing and incoming text");
             True(!vm.ContextText.Contains("user@example.com") && !vm.ContextText.Contains("demo-sensitive-password"), "Context preview is anonymized");
             True(networkCalls == 0, "Rule-based preparation stays local");
             SaveFrame(window, "context");
@@ -221,19 +268,44 @@ internal static class Program
             True(!secondPayload.Contains("First chat task") && !secondPayload.Contains("Unsent first chat draft") && !secondPayload.Contains(firstPlaceholder), "Another chat's messages and placeholders stay out of requests");
             var menu = OpenRowMenu(window, first);
             True(menu.Items.OfType<MenuItem>().First().Command == first.ArchiveCommand, "Sidebar menu is bound to its own chat");
+            menu.Items.OfType<MenuItem>().Last().Command!.Execute(null); menu.Hide(); SettleAnimations();
+            True(workspace.DeleteConfirmationOpen && workspace.PendingDeleteTitle == first.Title && workspace.Active == second && workspace.Conversations.Count == 2,
+                "An inactive chat with history opens confirmation without deleting or changing the active chat");
+            True(window.FindControl<Border>("DeleteConfirmationDialog")!.IsVisible && !window.FindControl<Grid>("WorkspaceSurface")!.IsHitTestVisible &&
+                window.FindControl<Border>("SettingsBackdrop")!.Opacity > 0.99 && !workspace.NewChatCommand.CanExecute(null) && !first.ArchiveCommand.CanExecute(null),
+                "Deletion confirmation dims the background and blocks navigation and other row actions");
+            True(!window.FindControl<TextBox>("FolderBox")!.IsEffectivelyEnabled && !window.FindControl<TextBox>("PromptBox")!.IsEffectivelyEnabled,
+                "Background editors cannot receive keyboard input through the deletion modal");
+            True(window.FocusManager!.GetFocusedElement() == window.FindControl<Button>("CancelDeleteButton"), "Cancel is initially focused to prevent accidental confirmation");
+            for (int i = 0; i < 5; i++) { window.KeyPressQwerty(PhysicalKey.Tab, RawInputModifiers.None); window.KeyReleaseQwerty(PhysicalKey.Tab, RawInputModifiers.None); Flush(); }
+            True(window.FocusManager.GetFocusedElement() is Control focused && focused.GetVisualAncestors().Contains(window.FindControl<Border>("DeleteConfirmationDialog")!),
+                "Keyboard navigation stays within the confirmation modal");
+            SaveFrame(window, "delete-confirmation");
+            workspace.LanguageIndex = 1; Flush();
+            True(VisibleText(window, "Удалить этот диалог?"), "Deletion confirmation supports Russian");
+            workspace.LanguageIndex = 0;
+            window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None); window.KeyReleaseQwerty(PhysicalKey.Escape, RawInputModifiers.None); SettleAnimations();
+            True(!workspace.DeleteConfirmationOpen && workspace.Conversations.Count == 2 && workspace.Active == second && secondVm.Chat.Count == 2,
+                "Escape cancels deletion and preserves both conversations");
+            True(workspace.PendingDeleteTitle == first.Title && window.FocusManager.GetFocusedElement() is Control restoredFocus &&
+                !restoredFocus.GetVisualAncestors().Contains(window.FindControl<Border>("DeleteConfirmationDialog")!),
+                "Closing keeps the modal layout stable during its fade and returns focus to the workspace");
+            menu = OpenRowMenu(window, first);
             menu.Items.OfType<MenuItem>().First().Command!.Execute(null); menu.Hide(); Flush();
             True(first.IsArchived && workspace.Active == second && secondVm.Chat.Count == 2, "Archiving an inactive chat preserves the active conversation");
+            True(window.FindControl<Button>("ArchivesButton")!.IsVisible, "Archiving the first chat reveals the archive entry");
             workspace.ToggleArchiveViewCommand.Execute(null); Flush();
             menu = OpenRowMenu(window, first);
             True((string)menu.Items.OfType<MenuItem>().First().Header! == "Restore chat", "Archived rows offer restore");
             menu.Items.OfType<MenuItem>().First().Command!.Execute(null); menu.Hide(); Flush();
             True(!first.IsArchived && workspace.Active == first && !workspace.ShowingArchive, "Sidebar restore returns the active archived chat to recent chats");
+            True(!window.FindControl<Button>("ArchivesButton")!.IsVisible, "Restoring the last archived chat hides the archive entry");
             workspace.NewChatCommand.Execute(null); Flush();
             var temporary = workspace.Active!; temporary.Session.Prompt = "Unsent disposable draft";
             workspace.Active = second; Flush();
             menu = OpenRowMenu(window, temporary);
             menu.Items.OfType<MenuItem>().Last().Command!.Execute(null); menu.Hide(); Flush();
-            True(workspace.Active == second && !workspace.Conversations.Contains(temporary) && temporary.Session.Prompt == "" && !temporary.DeleteCommand.CanExecute(null),
+            True(!workspace.DeleteConfirmationOpen && workspace.Active == second && !workspace.Conversations.Contains(temporary) && temporary.Session.Prompt == "" && !temporary.DeleteCommand.CanExecute(null),
                 "Deleting an inactive chat from its menu releases only that chat and disables stale actions");
             var chatList = window.FindControl<ListBox>("ConversationsList")!;
             chatList.SelectedItem = first; Flush();
@@ -295,10 +367,16 @@ internal static class Program
             var toggle = window.FindControl<Button>("ToggleChatsButton")!;
             True(toggle.TranslatePoint(new Point(toggle.Bounds.Width, 0), window.FindControl<Border>("ChatsSidebar")!)!.Value.X <= 240,
                 "Chat sidebar toggle stays visible at minimum window width");
+            workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations();
+            CheckInsideSidebar(window, "ToggleChatsButton", "ChatsSidebar"); CheckInsideSidebar(window, "ToggleModelsButton", "ModelsSidebar");
+            CheckInsideSidebar(window, "CollapsedSettingsButton", "ChatsSidebar");
+            CheckCenteredToggleIcon(window, "ToggleChatsButton"); CheckCenteredToggleIcon(window, "ToggleModelsButton");
+            workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations();
             CheckPersistence(fixture, folderB);
+            SidebarStateChecks.Run(fixture);
             CheckTitleLifecycle(folderB);
-            Console.WriteLine("PASS UI: per-row chat menus, goal titles, title cancellation, durable naming/export/restart, smooth sidebars, modal backdrop, isolated sessions, model signals, language and privacy review.");
-            Console.WriteLine("Synthetic screenshots: artifacts/screenshots/{mvp-design,start,collapsed,settings,context,message-ru,chat,chats,archive,compact}.png");
+            Console.WriteLine("PASS UI: centered chevron drawings, collapsed settings access, constant hover/pressed colors, fully contained collapsed toggles, deletion confirmation, hidden empty archive, reversible motion, isolated sessions, persistence and privacy review.");
+            Console.WriteLine("Synthetic screenshots: artifacts/screenshots/{mvp-design,start,sidebar-motion,collapsed,collapsed-hover,settings,delete-confirmation,context,message-ru,chat,chats,archive,compact}.png");
             return 0;
         }
         catch (Exception e) { Console.WriteLine("FAIL UI: " + e.Message); return 1; }
@@ -311,6 +389,42 @@ internal static class Program
     }
 
     static HttpResponseMessage Response(string body) => new(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+    static void CheckCenteredToggleIcon(Window window, string buttonName)
+    {
+        var button = window.FindControl<Button>(buttonName)!;
+        var icon = button.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.IsVisible);
+        var center = icon.TranslatePoint(new Point(icon.Bounds.Width / 2, icon.Bounds.Height / 2), button)!.Value;
+        True(Math.Abs(center.X - button.Bounds.Width / 2) < 0.5 && Math.Abs(center.Y - button.Bounds.Height / 2) < 0.5,
+            buttonName + " icon drawing area is centered in its button");
+        var geometry = icon.Data!.Bounds;
+        True(Math.Abs(icon.Bounds.Width / icon.Bounds.Height - geometry.Width / geometry.Height) < 0.01,
+            buttonName + " drawing area matches the geometry aspect ratio, without unused horizontal space");
+    }
+    static void CheckInsideSidebar(Window window, string buttonName, string sidebarName)
+    {
+        var button = window.FindControl<Button>(buttonName)!;
+        var sidebar = window.FindControl<Border>(sidebarName)!;
+        var position = button.TranslatePoint(default, sidebar)!.Value;
+        True(position.X >= 10 && position.X + button.Bounds.Width <= sidebar.Bounds.Width - 10,
+            buttonName + " and its entire hover surface stay inside the collapsed sidebar: x=" + position.X + ", width=" + button.Bounds.Width);
+        True(Math.Abs(position.X + button.Bounds.Width / 2 - sidebar.Bounds.Width / 2) < 1,
+            buttonName + " is centered in the collapsed sidebar");
+    }
+    static void CheckStableHover(Window window, Button button)
+    {
+        var surface = button.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ButtonSurface");
+        var center = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+        var expected = Color.Parse("#183047");
+        void AssertColor() => True(surface.Background is ISolidColorBrush brush && brush.Color == expected,
+            "Hovered/pressed " + button.Name + " retains a single color without intermediate bright frames");
+        window.MouseMove(center, RawInputModifiers.None); Flush(); AssertColor();
+        SettleAnimations(100); AssertColor(); SettleAnimations(550); AssertColor();
+        window.MouseMove(center + new Vector(3, 2), RawInputModifiers.None); Flush(); AssertColor();
+        window.MouseDown(center, MouseButton.Left, RawInputModifiers.None); Flush(); AssertColor();
+        var outside = new Point(window.Width / 2, 10);
+        window.MouseMove(outside, RawInputModifiers.None); window.MouseUp(outside, MouseButton.Left, RawInputModifiers.None); Flush();
+        window.MouseMove(center, RawInputModifiers.None); Flush(); AssertColor();
+    }
     static MenuFlyout OpenRowMenu(Window window, ConversationViewModel chat)
     {
         Flush(); window.UpdateLayout();
@@ -343,6 +457,8 @@ internal static class Program
         completion = new TaskCompletionSource<HttpResponseMessage>(); Send();
         workspace.NewChatCommand.Execute(null); var second = workspace.Active!; second.Session.Prompt = "Keep this draft";
         first.DeleteCommand.Execute(null);
+        True(workspace.DeleteConfirmationOpen && workspace.Conversations.Contains(first), "Pending title does not bypass deletion confirmation");
+        workspace.ConfirmDeleteChatCommand.Execute(null);
         completion.SetResult(Response("{\"message\":{\"content\":\"Late name after delete\"}}")); WaitTask(vm.TitleUpdate);
         True(titleToken.IsCancellationRequested && vm.ChatTitle == "" && workspace.Active == second && second.Session.Prompt == "Keep this draft" && workspace.Conversations.Count == 1,
             "Late title cannot recreate a deleted chat or alter the active chat");
@@ -404,6 +520,9 @@ internal static class Program
             vm.PreviewPromptCommand.Execute(null); Wait(vm); vm.SendCommand.Execute(null); Wait(vm);
             True(vm.Chat.Count == 4, "A reviewed reopened chat can continue its conversation");
             reopened.DeleteChatCommand.Execute(null); WaitTask(reopened.FlushStorageAsync());
+            True(reopened.DeleteConfirmationOpen && File.Exists(Path.Combine(storageFolder, id.ToString("N") + ".json")), "Opening confirmation does not delete the stored transcript");
+            reopened.CancelDeleteChatCommand.Execute(null);
+            reopened.DeleteChatCommand.Execute(null); reopened.ConfirmDeleteChatCommand.Execute(null); WaitTask(reopened.FlushStorageAsync());
             True(!File.Exists(Path.Combine(storageFolder, id.ToString("N") + ".json")), "Deleting removes the persisted chat");
             reopened.ClearAllCommand.Execute(null); WaitTask(reopened.FlushStorageAsync());
             True(new JsonDirectoryChatStore(storageFolder).LoadAsync(default).GetAwaiter().GetResult().All(chat => chat.Messages.Count == 0 && !chat.Archived),
@@ -434,9 +553,9 @@ internal static class Program
         return window.OwnedWindows.OfType<SettingsWindow>().Single();
     }
     static void Flush() { Dispatcher.UIThread.RunJobs(); }
-    static void SettleAnimations()
+    static void SettleAnimations(int milliseconds = 650)
     {
-        var deadline = DateTime.UtcNow.AddMilliseconds(450);
+        var deadline = DateTime.UtcNow.AddMilliseconds(milliseconds);
         while (DateTime.UtcNow < deadline) { Flush(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Thread.Sleep(10); }
         Flush();
     }

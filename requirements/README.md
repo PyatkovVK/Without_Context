@@ -12,12 +12,14 @@ Use fictional examples only. Do not include real documents, keys, personal data,
 - [Recent chats](left-sidebar/recent-chats.md)
 - [Chat title](left-sidebar/chat-title.md)
 - [Chat menu](left-sidebar/chat-menu.md)
+- [Delete confirmation](left-sidebar/delete-confirmation.md)
 - [Archive](left-sidebar/archive.md)
 - [Settings](left-sidebar/settings.md)
 - [Collapsing](left-sidebar/collapsing.md)
 
-## Main area
+## General requirements
 
-- [Conversation](main-area/conversation.md)
-- [Message input](main-area/message-input.md)
-- [Context review](main-area/context-review.md)
+- [Storage and export](general/storage-and-export.md)
+- [Data protection](general/data-protection.md)
+- [Design and animations](general/design-and-animations.md)
+- [Sidebar state persistence](general/sidebar-state.md)

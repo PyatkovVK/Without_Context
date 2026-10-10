@@ -631,8 +631,14 @@ company name, surname, project…</value>
   <data name="Review" xml:space="preserve">
     <value>Review</value>
   </data>
-  <data name="ChatsStorageHint" xml:space="preserve">
-    <value>Chats are saved locally. Export from chat settings.</value>
+  <data name="DeleteConfirmationTitle" xml:space="preserve">
+    <value>Delete this conversation?</value>
+  </data>
+  <data name="DeleteConfirmationMessage" xml:space="preserve">
+    <value>This chat has message history. Deleting it permanently removes the conversation from this device. Exported copies will remain.</value>
+  </data>
+  <data name="CancelDeletion" xml:space="preserve">
+    <value>Cancel</value>
   </data>
   <data name="ChatStorageFolder" xml:space="preserve">
     <value>Chat storage folder</value>
@@ -687,5 +693,11 @@ company name, surname, project…</value>
   </data>
   <data name="ChatActionsLabel" xml:space="preserve">
     <value>Chat actions</value>
+  </data>
+  <data name="SidebarStateReadFailed" xml:space="preserve">
+    <value>Sidebar preferences could not be loaded. Check access to the application's local data folder.</value>
+  </data>
+  <data name="SidebarStateWriteFailed" xml:space="preserve">
+    <value>Sidebar preferences could not be saved. Check free space and permissions for the application's local data folder.</value>
   </data>
 </root>

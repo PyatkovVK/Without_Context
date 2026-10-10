@@ -10,9 +10,9 @@ public partial class MainWindow : Window
 {
     private readonly WorkspaceViewModel workspace;
     private SettingsWindow? settingsWindow;
+    private IInputElement? focusBeforeDelete;
     private bool allowClose, closing;
-    public MainWindow() : this(new WorkspaceViewModel(archive: new Core.ChatArchiveService(new Core.JsonDirectoryChatStore(
-        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WithoutContext", "chats"))))) { }
+    public MainWindow() : this(new WorkspaceViewModel()) { }
     public MainWindow(WorkspaceViewModel workspace)
     {
         InitializeComponent();
@@ -58,8 +58,12 @@ public partial class MainWindow : Window
         SizeChanged += (_, e) => workspace.CompactLayout = e.NewSize.Width < 1200;
         workspace.ScrollChat += ScrollToEnd;
         workspace.RequestSettings += OpenSettings;
+        workspace.PropertyChanged += ModalChanged;
         AddHandler(KeyDownEvent, (_, e) =>
         {
+            if (workspace.DeleteConfirmationOpen && e.Key == Key.Escape)
+            { workspace.CancelDeleteChatCommand.Execute(null); e.Handled = true; return; }
+            if (workspace.ModalOpen) return;
             var command = workspace.Active?.Session.PreviewPromptCommand;
             if (e.Key == Key.Enter && (e.KeyModifiers & KeyModifiers.Control) != 0 && command?.CanExecute(null) == true)
             { command.Execute(null); e.Handled = true; }
@@ -67,6 +71,7 @@ public partial class MainWindow : Window
         Closed += (_, _) =>
         {
             workspace.ScrollChat -= ScrollToEnd; workspace.RequestSettings -= OpenSettings;
+            workspace.PropertyChanged -= ModalChanged;
             workspace.Dispose();
         };
     }
@@ -74,6 +79,29 @@ public partial class MainWindow : Window
         this.FindControl<ScrollViewer>("ChatScroll")?.ScrollToEnd(), DispatcherPriority.Background);
 
     private void CloseChatMenu(object? sender, RoutedEventArgs e) => this.FindControl<Button>("ChatActions")?.Flyout?.Hide();
+
+    private void ModalChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(WorkspaceViewModel.DeleteConfirmationOpen)) return;
+        if (workspace.DeleteConfirmationOpen)
+        {
+            focusBeforeDelete = FocusManager?.GetFocusedElement();
+            Dispatcher.UIThread.Post(() =>
+            { if (workspace.DeleteConfirmationOpen) this.FindControl<Button>("CancelDeleteButton")?.Focus(); });
+        }
+        else
+        {
+            var previous = focusBeforeDelete; focusBeforeDelete = null;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!IsVisible || workspace.ModalOpen) return;
+                if (previous is Control control && control.IsEffectivelyEnabled && control.IsVisible &&
+                    Avalonia.VisualTree.VisualExtensions.GetVisualRoot(control) == this) control.Focus();
+                else if (this.FindControl<TextBox>("PromptBox") is { IsEffectivelyEnabled: true } prompt) prompt.Focus();
+                else this.FindControl<Button>("ToggleChatsButton")?.Focus();
+            });
+        }
+    }
 
     private async void OpenSettings()
     {

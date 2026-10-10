@@ -60,21 +60,36 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
     private int nextNumber;
     private bool disposed;
     private readonly ChatArchiveService? archive;
+    private readonly ISidebarStateService? sidebarState;
+    private readonly CancellationTokenSource sidebarLifetime = new();
+    private Task? sidebarInitialization;
+    private int chatsSidebarRevision, modelsSidebarRevision;
     private bool loading, exporting, initialized;
-    private string storageMessageKey = "", storageErrorKey = "";
+    private string storageMessageKey = "", storageErrorKey = "", sidebarErrorKey = "";
     public string StorageFolder => archive?.Folder ?? "";
-    public string StorageMessage => storageErrorKey.Length > 0 ? Text[storageErrorKey] : storageMessageKey.Length > 0 ? Text[storageMessageKey] : "";
+    public string StorageMessage => storageErrorKey.Length > 0 ? Text[storageErrorKey] : sidebarErrorKey.Length > 0 ? Text[sidebarErrorKey] : storageMessageKey.Length > 0 ? Text[storageMessageKey] : "";
     public bool HasStorageMessage => StorageMessage.Length > 0;
-    public bool StorageFailed => storageErrorKey.Length > 0;
+    public bool StorageFailed => storageErrorKey.Length > 0 || sidebarErrorKey.Length > 0;
     public Func<Task<string?>>? PickExportFolderAsync { get; set; }
+    private ConversationViewModel? pendingDeletion;
+    private string deletionTitle = "";
+    public bool DeleteConfirmationOpen => pendingDeletion is not null;
+    // Retain the displayed title during the closing fade; the panel must not reflow.
+    public string PendingDeleteTitle => deletionTitle;
+    public bool ModalOpen => SettingsOpen || DeleteConfirmationOpen;
+    public double ModalShade => ModalOpen ? 1 : 0;
     private bool settingsOpen;
     public bool SettingsOpen
     {
         get => settingsOpen;
-        set { if (Set(ref settingsOpen, value)) { Notify(nameof(SettingsShade)); Notify(nameof(ChatScrollBarVisibility)); } }
+        set { if (Set(ref settingsOpen, value)) NotifyModal(); }
     }
-    public double SettingsShade => SettingsOpen ? 1 : 0;
-    public ScrollBarVisibility ChatScrollBarVisibility => SettingsOpen ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
+    public ScrollBarVisibility ChatScrollBarVisibility => ModalOpen ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
+    private void NotifyModal()
+    {
+        Notify(nameof(DeleteConfirmationOpen)); Notify(nameof(PendingDeleteTitle)); Notify(nameof(ModalOpen));
+        Notify(nameof(ModalShade)); Notify(nameof(ChatScrollBarVisibility)); Refresh();
+    }
     private readonly List<RelayCommand> commands = [];
     public ObservableCollection<ConversationViewModel> Conversations { get; } = [];
     public ObservableCollection<ConversationViewModel> VisibleConversations { get; } = [];
@@ -86,7 +101,7 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
         get => active;
         set
         {
-            if (value is null || !Conversations.Contains(value) || IsBusy || !Set(ref active, value)) return;
+            if (value is null || !Conversations.Contains(value) || IsBusy || DeleteConfirmationOpen || !Set(ref active, value)) return;
             Refresh(); ScrollChat?.Invoke();
         }
     }
@@ -102,44 +117,67 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
             Text = new((AppLanguage)value); Notify(nameof(Text)); Notify(nameof(ChatsToggleTip)); Notify(nameof(ModelsToggleTip));
             Notify(nameof(StorageMessage));
             foreach (var chat in Conversations) chat.Session.LanguageIndex = value;
-            NotifyArchive();
+            NotifyArchive(); Notify(nameof(PendingDeleteTitle));
         }
     }
     private bool chatsSidebarOpen = true;
     public bool ChatsSidebarOpen
     {
         get => chatsSidebarOpen;
-        set { if (Set(ref chatsSidebarOpen, value)) { Notify(nameof(ChatsSidebarWidth)); Notify(nameof(ChatsSidebarPixels)); Notify(nameof(ChatsSidebarPadding)); Notify(nameof(ChatsToggleTip)); Notify(nameof(ChatsToggleGlyph)); } }
+        set
+        {
+            if (disposed) return;
+            chatsSidebarRevision++;
+            if (Set(ref chatsSidebarOpen, value))
+            {
+                Notify(nameof(ChatsSidebarWidth)); Notify(nameof(ChatsSidebarPixels)); Notify(nameof(ChatsSidebarPadding));
+                Notify(nameof(ChatsHeaderPixels)); Notify(nameof(ChatsBrandPixels)); Notify(nameof(ChatsToggleTip)); Notify(nameof(CanUseChatList));
+            }
+        }
     }
     private bool modelsSidebarOpen = true;
     public bool ModelsSidebarOpen
     {
         get => modelsSidebarOpen;
-        set { if (Set(ref modelsSidebarOpen, value)) { Notify(nameof(ModelsSidebarWidth)); Notify(nameof(ModelsSidebarPixels)); Notify(nameof(ModelsSidebarPadding)); Notify(nameof(ModelsToggleTip)); } }
+        set
+        {
+            if (disposed) return;
+            modelsSidebarRevision++;
+            if (Set(ref modelsSidebarOpen, value))
+            {
+                Notify(nameof(ModelsSidebarWidth)); Notify(nameof(ModelsSidebarPixels)); Notify(nameof(ModelsSidebarPadding));
+                Notify(nameof(ModelsHeaderPixels)); Notify(nameof(ModelsBrandPixels)); Notify(nameof(ModelsToggleTip));
+            }
+        }
     }
     private bool compactLayout;
     public bool CompactLayout
     {
         get => compactLayout;
-        set { if (Set(ref compactLayout, value)) { Notify(nameof(ChatsSidebarWidth)); Notify(nameof(ModelsSidebarWidth)); Notify(nameof(ChatsSidebarPixels)); Notify(nameof(ModelsSidebarPixels)); Notify(nameof(ChatsBodyWidth)); Notify(nameof(ModelsBodyWidth)); Notify(nameof(TitleMaxWidth)); } }
+        set { if (Set(ref compactLayout, value)) { Notify(nameof(ChatsSidebarWidth)); Notify(nameof(ModelsSidebarWidth)); Notify(nameof(ChatsSidebarPixels)); Notify(nameof(ModelsSidebarPixels)); Notify(nameof(ChatsBodyWidth)); Notify(nameof(ModelsBodyWidth)); Notify(nameof(ChatsHeaderPixels)); Notify(nameof(ChatsBrandPixels)); Notify(nameof(ModelsHeaderPixels)); Notify(nameof(ModelsBrandPixels)); Notify(nameof(TitleMaxWidth)); } }
     }
     public double TitleMaxWidth => CompactLayout ? 220 : 350;
-    public string ChatsToggleGlyph => ChatsSidebarOpen ? "‹" : "›";
-    public GridLength ChatsSidebarWidth => new(ChatsSidebarOpen ? CompactLayout ? 240 : 310 : 56);
-    public GridLength ModelsSidebarWidth => new(ModelsSidebarOpen ? CompactLayout ? 300 : 350 : 56);
+    public GridLength ChatsSidebarWidth => new(ChatsSidebarOpen ? CompactLayout ? 240 : 310 : 72);
+    public GridLength ModelsSidebarWidth => new(ModelsSidebarOpen ? CompactLayout ? 300 : 350 : 72);
     public double ChatsSidebarPixels => ChatsSidebarWidth.Value;
     public double ModelsSidebarPixels => ModelsSidebarWidth.Value;
     public double ChatsBodyWidth => (CompactLayout ? 240 : 310) - 26;
     public double ModelsBodyWidth => (CompactLayout ? 300 : 350) - 46;
-    public Thickness ChatsSidebarPadding => ChatsSidebarOpen ? new(12, 20, 12, 16) : new(8, 20, 8, 16);
-    public Thickness ModelsSidebarPadding => ModelsSidebarOpen ? new(22, 20, 22, 18) : new(8, 20, 8, 18);
+    public Thickness ChatsSidebarPadding => ChatsSidebarOpen ? new(12, 20, 12, 16) : new(13, 20, 13, 16);
+    public Thickness ModelsSidebarPadding => ModelsSidebarOpen ? new(22, 20, 22, 18) : new(13, 20, 13, 18);
+    public double ChatsHeaderPixels => ChatsSidebarPixels - ChatsSidebarPadding.Left - ChatsSidebarPadding.Right - 2;
+    public double ModelsHeaderPixels => ModelsSidebarPixels - ModelsSidebarPadding.Left - ModelsSidebarPadding.Right - 2;
+    public double ChatsBrandPixels => ChatsHeaderPixels - 44;
+    public double ModelsBrandPixels => ModelsHeaderPixels - 44;
     public string ChatsToggleTip => Text[ChatsSidebarOpen ? "HideChats" : "ShowChats"];
     public string ModelsToggleTip => Text[ModelsSidebarOpen ? "HideModels" : "ShowModels"];
     public bool IsBusy => loading || exporting || Conversations.Any(chat => chat.Session.Busy);
     public bool NotBusy => !IsBusy;
+    public bool CanUseChatList => NotBusy && ChatsSidebarOpen;
     private bool showingArchive;
     public bool ShowingArchive => showingArchive;
     public int ArchivedCount => Conversations.Count(chat => chat.IsArchived);
+    public bool HasArchivedChats => ArchivedCount > 0;
     public string ChatListHeading => Text[ShowingArchive ? "ArchivedChats" : "RecentChats"];
     public string ArchiveNavigationLabel => ShowingArchive ? Text["BackToChats"] : Text.Format("ArchiveCount", ArchivedCount);
     public string ArchiveActionLabel => Text[Active?.IsArchived == true ? "RestoreChat" : "ArchiveChat"];
@@ -151,15 +189,18 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
     public RelayCommand ArchiveChatCommand { get; }
     public RelayCommand NewChatCommand { get; }
     public RelayCommand DeleteChatCommand { get; }
+    public RelayCommand ConfirmDeleteChatCommand { get; }
+    public RelayCommand CancelDeleteChatCommand { get; }
     public RelayCommand SettingsCommand { get; }
     public RelayCommand ClearAllCommand { get; }
     public RelayCommand ExportChatCommand { get; }
     public RelayCommand ExportAllCommand { get; }
     public RelayCommand DismissStorageMessageCommand { get; }
     public RelayCommand OpenContextOptionsCommand { get; }
-    public WorkspaceViewModel(Func<ModelClient>? clientFactory = null, ChatArchiveService? archive = null)
+    public WorkspaceViewModel(Func<ModelClient>? clientFactory = null, ChatArchiveService? archive = null, ISidebarStateService? sidebarState = null)
     {
         this.archive = archive;
+        this.sidebarState = sidebarState;
         // Compose one complete set of dependencies per chat; sessions never share a client or state.
         sessionFactory = () =>
         {
@@ -174,17 +215,24 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
         ArchiveChatCommand = Command(() => { if (Active is { } chat) ArchiveChat(chat); }, () => NotBusy && Active is not null);
         NewChatCommand = Command(() => CreateChat(Active?.Session), () => NotBusy);
         DeleteChatCommand = Command(() => { if (Active is { } chat) DeleteChat(chat); }, () => NotBusy && Active is not null);
+        ConfirmDeleteChatCommand = new(() =>
+        {
+            var chat = pendingDeletion;
+            pendingDeletion = null; NotifyModal();
+            if (chat is not null) DeleteConfirmed(chat);
+        }, () => !disposed && NotBusy && pendingDeletion is not null && Conversations.Contains(pendingDeletion));
+        CancelDeleteChatCommand = new(() => { pendingDeletion = null; NotifyModal(); }, () => !disposed && DeleteConfirmationOpen);
         SettingsCommand = Command(() => RequestSettings?.Invoke(), () => NotBusy);
         ClearAllCommand = Command(ClearAll, () => NotBusy);
         ExportChatCommand = Command(() => Export(false), () => NotBusy && initialized && archive is not null && Active is not null);
         ExportAllCommand = Command(() => Export(true), () => NotBusy && initialized && archive is not null);
-        DismissStorageMessageCommand = Command(() => SetStorageMessage(""));
+        DismissStorageMessageCommand = Command(() => { SetStorageMessage(""); SetSidebarError(""); });
         CreateChat(null);
         loading = archive is not null; initialized = archive is null; Refresh();
     }
     private RelayCommand Command(Action action, Func<bool>? allowed = null)
     {
-        var command = new RelayCommand(action, () => !disposed && (allowed?.Invoke() ?? true));
+        var command = new RelayCommand(action, () => !disposed && !DeleteConfirmationOpen && (allowed?.Invoke() ?? true));
         commands.Add(command); return command;
     }
     private void CreateChat(MainViewModel? previous)
@@ -205,12 +253,14 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
         session.PickFolderAsync = () => PickFolderAsync?.Invoke() ?? Task.FromResult<string?>(null);
         session.PropertyChanged += SessionChanged; session.ScrollChat += OnScrollChat;
         session.StoredStateChanged += QueueSave;
-        var chat = new ConversationViewModel(++nextNumber, session, ArchiveChat, DeleteChat, () => !disposed && NotBusy);
+        var chat = new ConversationViewModel(++nextNumber, session, ArchiveChat, DeleteChat, () => !disposed && NotBusy && !DeleteConfirmationOpen);
         Conversations.Add(chat); showingArchive = false; UpdateVisible(); Active = chat; Refresh();
         QueueSave();
     }
     private void SessionChanged(object? sender, PropertyChangedEventArgs e)
-    { if (e.PropertyName == nameof(MainViewModel.Busy)) Refresh(); }
+    {
+        if (e.PropertyName == nameof(MainViewModel.Busy)) Refresh();
+    }
     private void OnScrollChat() => ScrollChat?.Invoke();
     private void Release(ConversationViewModel chat)
     { chat.Session.PropertyChanged -= SessionChanged; chat.Session.ScrollChat -= OnScrollChat; chat.Session.StoredStateChanged -= QueueSave; chat.Dispose(); }
@@ -222,7 +272,7 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
     }
     private void NotifyArchive()
     {
-        Notify(nameof(ShowingArchive)); Notify(nameof(ArchivedCount)); Notify(nameof(ChatListHeading));
+        Notify(nameof(ShowingArchive)); Notify(nameof(ArchivedCount)); Notify(nameof(HasArchivedChats)); Notify(nameof(ChatListHeading));
         Notify(nameof(ArchiveNavigationLabel)); Notify(nameof(ArchiveActionLabel)); Notify(nameof(ArchiveActionHelp));
     }
     private void SelectVisible(ConversationViewModel? preferred = null)
@@ -247,6 +297,12 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
     }
     private void DeleteChat(ConversationViewModel chat)
     {
+        if (disposed || !NotBusy || DeleteConfirmationOpen || !Conversations.Contains(chat)) return;
+        if (chat.Session.HasChat) { deletionTitle = chat.Title; pendingDeletion = chat; NotifyModal(); }
+        else DeleteConfirmed(chat);
+    }
+    private void DeleteConfirmed(ConversationViewModel chat)
+    {
         if (disposed || !NotBusy || !Conversations.Contains(chat)) return;
         Conversations.Remove(chat); Release(chat); UpdateVisible();
         if (Active is null || !VisibleConversations.Contains(Active)) SelectVisible();
@@ -263,6 +319,7 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
     }
     public async Task InitializeAsync()
     {
+        await InitializeSidebarStateAsync();
         if (initialized || archive is null || disposed) return;
         try
         {
@@ -275,7 +332,7 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
                 var session = sessionFactory(); session.LanguageIndex = LanguageIndex; session.RestoreStoredState(item);
                 session.PickFolderAsync = () => PickFolderAsync?.Invoke() ?? Task.FromResult<string?>(null);
                 session.PropertyChanged += SessionChanged; session.ScrollChat += OnScrollChat; session.StoredStateChanged += QueueSave;
-                Conversations.Add(new(item.Number, session, ArchiveChat, DeleteChat, () => !disposed && NotBusy, item)); nextNumber = Math.Max(nextNumber, item.Number);
+                Conversations.Add(new(item.Number, session, ArchiveChat, DeleteChat, () => !disposed && NotBusy && !DeleteConfirmationOpen, item)); nextNumber = Math.Max(nextNumber, item.Number);
             }
             initialized = true; loading = false; UpdateVisible(); SelectVisible();
             Notify(nameof(Active)); Refresh(); QueueSave();
@@ -283,6 +340,23 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
         catch (OperationCanceledException) when (disposed) { }
         catch (SafeOperationException e) { if (!disposed) { loading = false; SetStorageMessage(e.MessageKey, true); Refresh(); } }
         catch { if (!disposed) { loading = false; SetStorageMessage("ChatStorageReadFailed", true); Refresh(); } }
+    }
+    private Task InitializeSidebarStateAsync() => sidebarInitialization ??= LoadSidebarStateAsync();
+    private async Task LoadSidebarStateAsync()
+    {
+        if (sidebarState is null || disposed) return;
+        int chatsRevision = chatsSidebarRevision, modelsRevision = modelsSidebarRevision;
+        try
+        {
+            var saved = await sidebarState.LoadAsync(sidebarLifetime.Token);
+            if (disposed) return;
+            // A late startup read must not override a newer user choice on either panel.
+            if (chatsRevision == chatsSidebarRevision) ChatsSidebarOpen = saved.ChatsSidebarOpen;
+            if (modelsRevision == modelsSidebarRevision) ModelsSidebarOpen = saved.ModelsSidebarOpen;
+        }
+        catch (OperationCanceledException) when (disposed) { }
+        catch (SafeOperationException e) { if (!disposed) SetSidebarError(e.MessageKey); }
+        catch { if (!disposed) SetSidebarError("SidebarStateReadFailed"); }
     }
     private StoredConversation Snapshot(ConversationViewModel chat)
     {
@@ -301,8 +375,24 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
         catch (SafeOperationException e) { if (!disposed) SetStorageMessage(e.MessageKey, true); }
         catch { if (!disposed) SetStorageMessage("ChatStorageWriteFailed", true); }
     }
-    public Task FlushStorageAsync() => archive is not null && !initialized
-        ? Task.FromException(new SafeOperationException("ChatStorageReadFailed")) : archive?.FlushAsync() ?? Task.CompletedTask;
+    public async Task FlushStorageAsync()
+    {
+        await InitializeSidebarStateAsync();
+        if (archive is not null && !initialized) throw new SafeOperationException("ChatStorageReadFailed");
+        if (archive is not null) await archive.FlushAsync();
+        if (sidebarState is null || disposed) return;
+        try
+        {
+            await sidebarState.SaveAsync(new(ChatsSidebarOpen, ModelsSidebarOpen), sidebarLifetime.Token);
+            if (!disposed) SetSidebarError("");
+        }
+        catch (SafeOperationException e) { if (!disposed) SetSidebarError(e.MessageKey); throw; }
+    }
+    private void SetSidebarError(string key)
+    {
+        sidebarErrorKey = key;
+        Notify(nameof(StorageMessage)); Notify(nameof(HasStorageMessage)); Notify(nameof(StorageFailed));
+    }
     private void SetStorageMessage(string key, bool error = false)
     {
         storageMessageKey = error ? "" : key; storageErrorKey = error ? key : "";
@@ -329,14 +419,17 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
     public void CancelOperations() { foreach (var chat in Conversations) chat.Session.CancelOperation(); }
     private void Refresh()
     {
-        Notify(nameof(IsBusy)); Notify(nameof(NotBusy)); NotifyArchive();
+        Notify(nameof(IsBusy)); Notify(nameof(NotBusy)); Notify(nameof(CanUseChatList)); NotifyArchive();
         foreach (var command in commands) command.Refresh();
+        ConfirmDeleteChatCommand?.Refresh(); CancelDeleteChatCommand?.Refresh();
         foreach (var chat in Conversations) chat.RefreshCommands();
     }
     public void Dispose()
     {
         if (disposed) return;
         disposed = true;
+        sidebarLifetime.Cancel(); sidebarLifetime.Dispose();
+        pendingDeletion = null; deletionTitle = "";
         archive?.Dispose();
         foreach (var chat in Conversations) Release(chat);
         Conversations.Clear(); VisibleConversations.Clear(); active = null; PickFolderAsync = null; PickExportFolderAsync = null;

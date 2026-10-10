@@ -87,7 +87,7 @@ When a macOS bundle is created on Windows, restore its executable permission on 
 
 ## Your first conversation
 
-1. Open **Settings** in the left sidebar to choose the interface language, anonymization profile and custom values to replace.
+1. Open **Settings** in the left sidebar to choose the interface language, anonymization profile and custom values to replace. In the collapsed sidebar, use the settings icon at the bottom.
 2. In the right sidebar's **Folder context** section, select a folder containing documents or source code.
 3. In the right **Chat settings** panel, expand **Local privacy model** to optionally enable a downloaded Ollama cleaner. Expand **Model for your requests** to select the assistant:
    - **Ollama:** the default address is `http://localhost:11434`. Download a model, refresh the list or enter its name manually.
@@ -96,11 +96,15 @@ When a macOS bundle is created on Windows, restore its executable permission on 
 5. In the right sidebar, click **Prepare context**. Review the anonymized, reduced text in the center and confirm the review. Use **Review** to reopen the preview and **Back to chat** to return to the conversation.
 6. Write your task and click the arrow or press Ctrl+Enter to **Review message**. Review the preview, then click **Send**.
 
-The MVP interface follows the supplied three-panel design: a dark navy chat list, a central conversation with right-aligned user bubbles and a bottom composer, and folder context, model cards and trimming controls on the right. Both sidebars collapse with eased width transitions. The conversation title menu opens the chat, context, replacement map and file list. Model cards expand to reveal connection details; general preferences open in a modal window with a dimmed, inactive background and no page scrollbar.
+The MVP interface follows the supplied three-panel design: a dark navy chat list, a central conversation with right-aligned user bubbles and a bottom composer, and folder context, model cards and trimming controls on the right. Both sidebars collapse with eased width transitions; their buttons stay centered inside the collapsed panels. Buttons use a constant hover fill with the same color while pressed, avoiding animated highlights. The conversation title menu opens the chat, context, replacement map and file list. Model cards expand to reveal connection details; general preferences open in a modal window with a dimmed, inactive background and no page scrollbar.
 
-Use the **⋮** menu on any chat in the left sidebar to archive or delete that particular chat. Archived rows offer **Restore chat**. Actions on an inactive chat preserve your current conversation and draft. **Archive** at the bottom of the sidebar opens the archive. Archiving preserves that chat's live state while the app is open, and its anonymized transcript, context and archive membership across restarts. Deleting a chat or choosing **Clear all chats and keys** also removes the saved chats. Closing the app waits for pending saves, then releases sensitive session memory.
+Use the **⋮** menu on any chat in the left sidebar to archive or delete that particular chat. Archived rows offer **Restore chat**. Actions on an inactive chat preserve your current conversation and draft. Empty chats are deleted immediately when you choose delete; chats with message history require confirmation. **Cancel** or Escape keeps the chat intact. **Archive** at the bottom of the sidebar appears only when archived chats exist. Archiving preserves that chat's live state while the app is open, and its anonymized transcript, context and archive membership across restarts. Deleting a chat or choosing **Clear all chats and keys** also removes the saved chats. Closing the app waits for pending saves, then releases sensitive session memory.
+
+The open/closed state of each sidebar is saved on normal exit and restored on the next launch. A dedicated service stores only these two preferences in `WithoutContext/sidebar-state.local.json` under the OS local application-data directory. Other settings retain their existing behavior. Missing or invalid preference files default to both panels open.
 
 ## Local storage and export
+
+Chats are saved locally. Export the selected chat from the right sidebar or export all chats from Settings.
 
 Chats are stored as versioned JSON files with opaque IDs in the operating system's local application-data folder, under **WithoutContext/chats**. On Windows this is `%LOCALAPPDATA%\WithoutContext\chats`. The exact path is displayed in **Settings → Chat storage folder**, where you can select and copy it.
 
