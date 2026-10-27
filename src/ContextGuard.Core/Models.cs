@@ -10,7 +10,9 @@ public sealed record ProtectionOptions(ProtectionProfile Profile, IReadOnlyList<
 public sealed record ModelSettings(ModelProvider Provider, string Endpoint, string Model, string ApiKey = "");
 public sealed record ChatMessage(string Role, string Content);
 public sealed record SafeFile(string Alias, string Content, string LocalRelativePath = "");
-public sealed record ScanSummary(int Included, int Skipped, int Characters, bool LimitReached, IReadOnlyList<SafeFile> Files)
+public sealed record SkippedContextFile(string LocalRelativePath, string ReasonKey);
+public sealed record ScanSummary(int Included, int Skipped, int Characters, bool LimitReached, IReadOnlyList<SafeFile> Files,
+    IReadOnlyList<SkippedContextFile>? SkippedFiles = null)
 {
     public string Context => string.Join("\n\n", Files.Select(f => $"--- FILE: {f.Alias} ---\n{f.Content}"));
 }

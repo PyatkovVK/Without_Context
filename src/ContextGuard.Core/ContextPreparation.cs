@@ -4,7 +4,13 @@ public interface IContextCollector
 {
     Task<ScanSummary> CollectAsync(string folder, RedactionSession session,
         Func<string, CancellationToken, Task>? inspectLocally, IProgress<int>? progress,
-        CancellationToken cancellationToken, int maxContextCharacters);
+        CancellationToken cancellationToken, int maxContextCharacters,
+        Func<byte[], CancellationToken, Task<string>>? inspectImageLocally = null);
+}
+
+public interface IContextImageModel
+{
+    Task<string> DescribeImageAsync(byte[] image, ModelSettings model, CancellationToken ct);
 }
 
 public interface ILocalContextModel
@@ -19,7 +25,7 @@ public sealed record ContextPreparationSettings(string Folder, ProtectionOptions
     ContextTrimmingMode Trimming, string Instructions, bool UseLocalModel, ModelSettings LocalModel, string KnownCredential);
 public sealed record PreparedContext(RedactionSession Session, ScanSummary Snapshot, string Text, int TargetCharacters);
 
-public sealed class ContextPreparationService(IContextCollector collector, ILocalContextModel localModel)
+public sealed class ContextPreparationService(IContextCollector collector, ILocalContextModel localModel, IContextImageModel? imageModel = null)
 {
     public async Task<PreparedContext> PrepareAsync(ContextPreparationSettings settings, IProgress<int>? progress, CancellationToken ct)
     {
@@ -35,7 +41,8 @@ public sealed class ContextPreparationService(IContextCollector collector, ILoca
         var snapshot = await Task.Run(() => collector.CollectAsync(settings.Folder, session,
             settings.UseLocalModel ? (raw, token) => localModel.DiscoverEntitiesAsync(raw, settings.Protection, session,
                 settings.LocalModel.Endpoint, settings.LocalModel.Model, token) : null,
-            progress, ct, settings.CollectionLimit), ct);
+            progress, ct, settings.CollectionLimit,
+            settings.UseLocalModel && imageModel is not null ? (image, token) => imageModel.DescribeImageAsync(image, settings.LocalModel, token) : null), ct);
         ct.ThrowIfCancellationRequested();
         if (snapshot.Included == 0) throw new SafeOperationException("NoTextFiles");
         int target = ContextReducer.TargetCharacters(settings.CollectionLimit, settings.Trimming);

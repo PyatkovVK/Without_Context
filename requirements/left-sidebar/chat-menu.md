@@ -20,6 +20,7 @@ Manage a specific chat directly from the list.
 - The delete action uses a distinct warning color. Deletion is irreversible within the application.
 - Actions are unavailable during a main operation. The menu closes after selecting an item.
 - Commands belonging to a deleted row become unavailable; results from its background title refinement are ignored.
+- The separate [right-sidebar actions](../right-sidebar/chat-actions.md) use compact single-line buttons with the same deletion confirmation rules.
 
 ## Acceptance criteria
 

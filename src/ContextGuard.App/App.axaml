@@ -64,14 +64,14 @@
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Template">
         <ControlTemplate>
-          <Grid ColumnDefinitions="28,*" Background="Transparent">
-            <Border Name="RadioRing" Width="24" Height="24" CornerRadius="12" BorderThickness="2" BorderBrush="#687C96" VerticalAlignment="Top" Margin="0,1,0,0">
+          <Grid ColumnDefinitions="20,*" Background="Transparent" MinHeight="24">
+            <Border Name="RadioRing" Width="18" Height="18" CornerRadius="9" BorderThickness="2" BorderBrush="#687C96" VerticalAlignment="Center">
               <Border.Transitions><Transitions><BrushTransition Property="BorderBrush" Duration="0:0:0.35" Easing="CubicEaseInOut" /></Transitions></Border.Transitions>
-              <Ellipse Name="RadioDot" Width="14" Height="14" Fill="#369AFF" Opacity="0">
+              <Ellipse Name="RadioDot" Width="8" Height="8" Fill="#369AFF" Opacity="0">
                 <Ellipse.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.35" Easing="CubicEaseInOut" /></Transitions></Ellipse.Transitions>
               </Ellipse>
             </Border>
-            <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Margin="14,0,0,0" HorizontalContentAlignment="Stretch" />
+            <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Margin="8,0,0,0" VerticalAlignment="Center" HorizontalContentAlignment="Stretch" />
           </Grid>
         </ControlTemplate>
       </Setter>

@@ -209,7 +209,7 @@
     <value>Новый диалог</value>
   </data>
   <data name="NoTextFiles" xml:space="preserve">
-    <value>Не найдено подходящих текстовых файлов. Проверьте папку и лимит контекста. PDF, Office, двоичные файлы и файлы с ключами не включаются.</value>
+    <value>Не найдено читаемого содержимого. Проверьте папку, поддерживаемые форматы и лимиты контекста. Для изображений нужна локальная модель со зрением; файлы с паролями и ключами по-прежнему исключаются.</value>
   </data>
   <data name="OllamaHelp" xml:space="preserve">
     <value>Ollama должна быть запущена. Облачные модели в этом режиме исключены.</value>
@@ -509,10 +509,10 @@
     <value>Выбранный помощник подключён.</value>
   </data>
   <data name="ApiConnectionHelp" xml:space="preserve">
-    <value>Подключение проверяет список моделей API без отправки контекста и генерации ответа.</value>
+    <value>Проверка подключения не отправляет ваши документы. Если список моделей недоступен, выполняется короткий тестовый запрос — он учитывается в лимитах провайдера.</value>
   </data>
   <data name="ConnectionCheckUnavailable" xml:space="preserve">
-    <value>Этот API не поддерживает проверку через список моделей. Подключение подтвердится после успешного запроса в чате.</value>
+    <value>Сервис не смог подтвердить эту модель. Проверьте адрес совместимого API и имя модели, затем подключитесь снова.</value>
   </data>
   <data name="ModelNotListed" xml:space="preserve">
     <value>Выбранной модели нет в списке API. Проверьте идентификатор и права доступа.</value>
@@ -602,8 +602,11 @@
     <value>Пользовательское</value>
   </data>
   <data name="TrimCustomHelp" xml:space="preserve">
-    <value>Локальный очиститель применит правила ниже к контексту папки.</value>
+    <value>Очистка кода локальными правилами или текста по вашему описанию через локальную модель.</value>
   </data>
+  <data name="CleanCode" xml:space="preserve"><value>Очищать в коде</value></data>
+  <data name="CleanTextByDescription" xml:space="preserve"><value>Очищать текст по описанию</value></data>
+  <data name="CleanCodeHelp" xml:space="preserve"><value>Найденные токены и ключи заменяются локально; остальные чувствительные данные — по профилю защиты. Код сохраняется в пределах лимита контекста.</value></data>
   <data name="TrimInstructionsHint" xml:space="preserve">
     <value>Сохраняй цели, ключевые факты и важный код. Убирай повторы и детали, не относящиеся к задаче.</value>
   </data>
@@ -700,4 +703,71 @@
   <data name="SidebarStateWriteFailed" xml:space="preserve">
     <value>Не удалось сохранить состояние боковых панелей. Проверьте свободное место и права доступа к папке локальных данных приложения.</value>
   </data>
+  <data name="OllamaUnchecked" xml:space="preserve"><value>Откройте этот блок, чтобы проверить Ollama на компьютере.</value></data>
+  <data name="OllamaMissing" xml:space="preserve"><value>Ollama не найдена. Укажите ollama.exe или скачайте её с официального сайта, затем повторите проверку.</value></data>
+  <data name="OllamaStopped" xml:space="preserve"><value>Ollama установлена. Запустите локальный сервер, чтобы увидеть скачанные модели.</value></data>
+  <data name="OllamaRunning" xml:space="preserve"><value>Ollama запущена · локальных моделей: {0}</value></data>
+  <data name="OllamaChecking" xml:space="preserve"><value>Ищу Ollama и проверяю локальный сервер…</value></data>
+  <data name="OllamaStarting" xml:space="preserve"><value>Запускаю Ollama и ожидаю локальный сервер…</value></data>
+  <data name="OllamaCheckFailed" xml:space="preserve"><value>Проверка не завершена. Проверьте адрес и попробуйте снова.</value></data>
+  <data name="FindOllama" xml:space="preserve"><value>Найти Ollama…</value></data>
+  <data name="CheckOllama" xml:space="preserve"><value>Проверить Ollama и обновить модели</value></data>
+  <data name="DownloadOllama" xml:space="preserve"><value>Скачать с ollama.com ↗</value></data>
+  <data name="StartOllama" xml:space="preserve"><value>Запустить Ollama</value></data>
+  <data name="InstallLocalModel" xml:space="preserve"><value>Скачать локальную модель</value></data>
+  <data name="InstallInTerminal" xml:space="preserve"><value>Установить через терминал ↗</value></data>
+  <data name="OllamaPullHelp" xml:space="preserve"><value>Эти модели можно бесплатно скачать и запускать локально. Установка откроет терминал с прогрессом загрузки. После завершения обновите список установленных моделей выше.</value></data>
+  <data name="InstalledLocalModels" xml:space="preserve"><value>Установленные модели</value></data>
+  <data name="FreeLocalModels" xml:space="preserve"><value>Бесплатные модели для скачивания</value></data>
+  <data name="ChooseDownloadModel" xml:space="preserve"><value>Выберите модель для скачивания</value></data>
+  <data name="OllamaNoInstalledModels" xml:space="preserve"><value>Локальных моделей пока нет. Выберите модель ниже, скачайте её и обновите этот список.</value></data>
+  <data name="OllamaSelectedModelMissing" xml:space="preserve"><value>Выбранная модель больше не установлена. Выберите другую из списка или скачайте её снова.</value></data>
+  <data name="OllamaModelAlreadyInstalled" xml:space="preserve"><value>Уже установлена. Выберите эту модель в списке выше.</value></data>
+  <data name="OllamaDownloadSize" xml:space="preserve"><value>Примерный размер загрузки: {0:N0} МБ.</value></data>
+  <data name="OtherLocalModel" xml:space="preserve"><value>Другая модель по имени</value></data>
+  <data name="LocalModelConnectionSettings" xml:space="preserve"><value>Настройки подключения</value></data>
+  <data name="OllamaLocateToInstall" xml:space="preserve"><value>Для скачивания моделей укажите исполняемый файл Ollama выше.</value></data>
+  <data name="OllamaPullOpened" xml:space="preserve"><value>Терминал загрузки открыт. После завершения обновите список и выберите установленную модель.</value></data>
+  <data name="OllamaExecutableInvalid" xml:space="preserve"><value>Выберите существующий исполняемый файл Ollama (ollama.exe в Windows).</value></data>
+  <data name="OllamaStartTimeout" xml:space="preserve"><value>Ollama не запустилась вовремя. Проверьте установку и не занят ли порт, затем попробуйте снова.</value></data>
+  <data name="OllamaPullModelInvalid" xml:space="preserve"><value>Введите имя локальной модели, например qwen3:4b. Облачные модели и команды оболочки запрещены.</value></data>
+  <data name="OllamaLaunchEndpointInvalid" xml:space="preserve"><value>Для запуска Ollama и установки модели нужен локальный HTTP-адрес без пути, например http://localhost:11434.</value></data>
+  <data name="OllamaLaunchFailed" xml:space="preserve"><value>Не удалось открыть Ollama, браузер или терминал. Проверьте установку и попробуйте снова.</value></data>
+  <data name="OllamaTerminalUnsupported" xml:space="preserve"><value>Автоматическая установка через терминал доступна в Windows. Выполните ollama pull с нужной моделью в своём терминале, затем обновите список.</value></data>
+  <data name="SetupRequiredHelp" xml:space="preserve"><value>Подключите локальную Ollama или внешнюю модель — и начинайте чат. Локальные правила защиты работают автоматически. Папку можно добавить, когда понадобится контекст файлов.</value></data>
+  <data name="WorkspaceReadyTitle" xml:space="preserve"><value>Всё готово к работе</value></data>
+  <data name="WorkspaceReadyHelp" xml:space="preserve"><value>Модель подключена. Контекст папки готовится автоматически; перед отправкой задачи проверьте его один раз.</value></data>
+  <data name="Configure" xml:space="preserve"><value>Настроить</value></data>
+  <data name="ChooseFolderShort" xml:space="preserve"><value>Выбрать</value></data>
+  <data name="EditModel" xml:space="preserve"><value>Редактировать подключение модели</value></data>
+  <data name="SupportedContextFiles" xml:space="preserve"><value>Код и текст любых расширений, PDF, Word, Excel, презентации и изображения. Для изображений и сканов нужна локальная модель со зрением, например gemma3:4b.</value></data>
+  <data name="ImageContextHelp" xml:space="preserve"><value>Для изображений и сканов выберите модель со зрением, например gemma3:4b.</value></data>
+  <data name="ImageNeedsLocalModel" xml:space="preserve"><value>Для чтения изображений включите и подключите локальную модель со зрением.</value></data>
+  <data name="ImageNeedsVisionModel" xml:space="preserve"><value>Локальная модель не поддерживает изображения. Выберите скачанную модель со зрением, например gemma3:4b, и подготовьте контекст заново.</value></data>
+  <data name="ImageReadFailed" xml:space="preserve"><value>Локальная модель не смогла прочитать изображение. Попробуйте другую локальную модель со зрением.</value></data>
+  <data name="FileUnsupported" xml:space="preserve"><value>Пропущен: неподдерживаемый двоичный формат или кодировка текста.</value></data>
+  <data name="FileUnreadable" xml:space="preserve"><value>Пропущен: файл недоступен, зашифрован или повреждён.</value></data>
+  <data name="FileTooLarge" xml:space="preserve"><value>Пропущен: превышен размер файла или лимит извлечения содержимого.</value></data>
+  <data name="FileContextLimit" xml:space="preserve"><value>Пропущен: достигнут выбранный лимит символов контекста.</value></data>
+  <data name="FileEmpty" xml:space="preserve"><value>Пропущен: нет читаемого текста или изображения.</value></data>
+  <data name="FileExcluded" xml:space="preserve"><value>Пропущен по правилам защиты файлов с паролями и ключами.</value></data>
+  <data name="ConnectModelTitle" xml:space="preserve"><value>Подключите модель и начинайте</value></data>
+  <data name="LocalOllamaChatTitle" xml:space="preserve"><value>Локальная модель Ollama</value></data>
+  <data name="FolderOptionalTitle" xml:space="preserve"><value>Контекст папки · по желанию</value></data>
+  <data name="ReadyToChatTitle" xml:space="preserve"><value>Можно начинать чат</value></data>
+  <data name="ReadyToChatHelp" xml:space="preserve"><value>Модель подключена. Напишите сообщение внизу. Папку можно добавить позже — правила защиты уже работают.</value></data>
+  <data name="StatusReadyToChat" xml:space="preserve"><value>Всё готово. Напишите сообщение.</value></data>
+  <data name="ChatWithoutFolderSummary" xml:space="preserve"><value>Чат без папки · файлы можно добавить позже.</value></data>
+  <data name="UseApiKey" xml:space="preserve"><value>Использовать API-ключ</value></data>
+  <data name="AnonymousApiHelp" xml:space="preserve"><value>Без ключа: для совместимых с OpenAI сервисов, разрешающих анонимные запросы. Официальные API OpenAI и Claude требуют аккаунт и авторизацию. Бесплатность зависит от выбранного провайдера.</value></data>
+  <data name="ApiAuthenticationRequired" xml:space="preserve"><value>Этот сервис требует авторизацию. Включите «Использовать API-ключ» и укажите его ключ или выберите провайдера, разрешающего анонимные запросы.</value></data>
+  <data name="CustomTrimmingAutomatic" xml:space="preserve"><value>Работает автоматическое сокращение. Ваше правило применится после подключения локальной Ollama; с текущей моделью уже можно общаться.</value></data>
+  <data name="CustomTrimmingEnterInstructions" xml:space="preserve"><value>Работает автоматическое сокращение. Введите инструкции ниже, чтобы применить своё правило.</value></data>
+  <data name="SignalOff" xml:space="preserve"><value>Отключён</value></data>
+  <data name="DisableCleanerHint" xml:space="preserve"><value>Отключить ИИ-очиститель в этом чате. Встроенные правила останутся активны; Ollama продолжит работать в других программах.</value></data>
+  <data name="EnableCleanerHint" xml:space="preserve"><value>Включить локальный ИИ-очиститель в этом чате. Подключение проверится заново; при необходимости сначала выберите модель.</value></data>
+  <data name="DisableAssistantHint" xml:space="preserve"><value>Отключить помощника в этом чате и отменить текущий запрос. Модель и другие программы продолжат работать.</value></data>
+  <data name="EnableAssistantHint" xml:space="preserve"><value>Включить помощника в этом чате и проверить подключение заново. При необходимости сначала выберите модель.</value></data>
+  <data name="StatusCleanerDisabled" xml:space="preserve"><value>ИИ-очиститель отключён для этого чата. Встроенные правила защиты работают. Перед отправкой проверьте контекст заново.</value></data>
+  <data name="StatusAssistantDisabled" xml:space="preserve"><value>Помощник отключён для этого чата. Нажмите «Помощник» сверху, чтобы подключить его снова.</value></data>
 </root>

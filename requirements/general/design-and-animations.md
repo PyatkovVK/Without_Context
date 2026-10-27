@@ -2,6 +2,8 @@
 
 Status: Implemented.
 
+The current local build's animations were explicitly approved by the user on 2026-10-27. Preserve the [approved animation baseline](approved-animation-baseline.md), including its timings and interaction behavior, during future interface changes.
+
 ## Requirements
 
 - The product name is Without Context.

@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace ContextGuard.Core;
 
 public sealed class FolderCollector : IContextCollector
@@ -10,10 +8,6 @@ public sealed class FolderCollector : IContextCollector
     private static readonly HashSet<string> ExcludedDirectories = new(StringComparer.OrdinalIgnoreCase)
     {
         ".git", ".svn", ".hg", "node_modules", "vendor", "venv", ".venv", "__pycache__", "bin", "obj", "dist", "build", ".next", ".idea", ".vs", ".aws", ".ssh", ".azure", ".kube", ".codex", ".agents"
-    };
-    private static readonly HashSet<string> Extensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".txt", ".md", ".markdown", ".cs", ".xaml", ".csproj", ".fs", ".vb", ".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css", ".scss", ".json", ".yaml", ".yml", ".toml", ".xml", ".sql", ".go", ".rs", ".java", ".kt", ".php", ".rb", ".c", ".cpp", ".h", ".hpp", ".sh", ".ps1", ".bat", ".ini", ".cfg", ".conf", ".csv", ".log", ".r", ".vue", ".svelte"
     };
     public static bool IsExcludedFile(string name)
     {
@@ -26,7 +20,7 @@ public sealed class FolderCollector : IContextCollector
 
     public async Task<ScanSummary> CollectAsync(string folder, RedactionSession session,
         Func<string, CancellationToken, Task>? inspectLocally, IProgress<int>? progress, CancellationToken cancellationToken,
-        int maxContextCharacters = 24_000)
+        int maxContextCharacters = 24_000, Func<byte[], CancellationToken, Task<string>>? inspectImageLocally = null)
     {
         maxContextCharacters = Math.Clamp(maxContextCharacters, 4000, MaxContextChars);
         string root;
@@ -40,10 +34,17 @@ public sealed class FolderCollector : IContextCollector
         catch { throw new SafeOperationException("FolderOpenFailed"); }
 
         var safeFiles = new List<SafeFile>();
+        var skippedFiles = new List<SkippedContextFile>();
         var pending = new Stack<string>();
         pending.Push(root);
         int skipped = 0, characters = 0, visited = 0;
         bool limited = false;
+        long inputBytes = 0;
+        void Skip(string path, string reason)
+        {
+            skipped++;
+            if (skippedFiles.Count < MaxFiles) skippedFiles.Add(new(Path.GetRelativePath(root, path), reason));
+        }
         while (pending.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -66,54 +67,59 @@ public sealed class FolderCollector : IContextCollector
                     pending.Push(path);
                     continue;
                 }
-                if (IsExcludedFile(name) || (!Extensions.Contains(Path.GetExtension(name)) && name is not "Dockerfile" and not "Makefile")) { skipped++; continue; }
+                if (IsExcludedFile(name)) { Skip(path, "FileExcluded"); continue; }
                 if (safeFiles.Count >= MaxFiles || characters >= maxContextCharacters) { limited = true; break; }
                 byte[] bytes;
+                string extension = Path.GetExtension(name).ToLowerInvariant();
+                int fileLimit = ContextFileTextReader.IsAttachment(extension) ? ContextFileTextReader.MaxDocumentBytes : MaxFileBytes;
                 try
                 {
                     // Recheck the path immediately before opening, and cap reads even if a file grows.
-                    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0 || new FileInfo(path).Length > MaxFileBytes) { skipped++; continue; }
+                    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0 || new FileInfo(path).Length > fileLimit) { Skip(path, "FileTooLarge"); continue; }
                     await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
-                    bytes = new byte[MaxFileBytes + 1];
+                    bytes = new byte[fileLimit + 1];
                     int read = 0, next;
                     while (read < bytes.Length && (next = await stream.ReadAsync(bytes.AsMemory(read), cancellationToken)) > 0) read += next;
-                    if (read > MaxFileBytes) { skipped++; continue; }
+                    if (read > fileLimit) { Skip(path, "FileTooLarge"); continue; }
+                    inputBytes += read;
+                    if (inputBytes > 64 * 1024 * 1024) { limited = true; break; }
                     Array.Resize(ref bytes, read);
                 }
-                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { skipped++; continue; }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Skip(path, "FileUnreadable"); continue; }
                 string raw;
                 try
                 {
-                    if (bytes.Length >= 2 && bytes[0] == 0xff && bytes[1] == 0xfe) raw = new UnicodeEncoding(false, true, true).GetString(bytes, 2, bytes.Length - 2);
-                    else if (bytes.Length >= 2 && bytes[0] == 0xfe && bytes[1] == 0xff) raw = new UnicodeEncoding(true, true, true).GetString(bytes, 2, bytes.Length - 2);
-                    else raw = new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF');
-                    if (raw.Contains('\0')) { skipped++; continue; }
+                    raw = await ContextFileTextReader.ReadAsync(extension, bytes, inspectImageLocally, cancellationToken);
                 }
-                catch (DecoderFallbackException) { skipped++; continue; }
-                if (raw.Length == 0) { skipped++; continue; }
-                if (raw.Length + characters > maxContextCharacters) { limited = true; skipped++; continue; }
+                catch (SafeOperationException e) when (e.MessageKey is "FileUnsupported" or "FileUnreadable" or "FileTooLarge")
+                { Skip(path, e.MessageKey); continue; }
+                catch (Exception e) when (e is InvalidDataException or System.Xml.XmlException or ArgumentException)
+                { Skip(path, "FileUnreadable"); continue; }
+                if (string.IsNullOrWhiteSpace(raw)) { Skip(path, "FileEmpty"); continue; }
+                if (raw.Length + characters > maxContextCharacters) { limited = true; Skip(path, "FileContextLimit"); continue; }
                 progress?.Report(safeFiles.Count + 1);
                 // Never send raw file names. Aliases preserve only the extension.
                 if (inspectLocally is not null) await inspectLocally(raw, cancellationToken);
                 string safe = session.Sanitize(raw);
-                if (safe.Length + characters > maxContextCharacters) { limited = true; skipped++; continue; }
-                string alias = $"file_{safeFiles.Count + 1:000}{Path.GetExtension(name).ToLowerInvariant()}";
+                if (safe.Length + characters > maxContextCharacters) { limited = true; Skip(path, "FileContextLimit"); continue; }
+                string alias = $"file_{safeFiles.Count + 1:000}{ContextFileTextReader.AliasExtension(extension)}";
                 string relativePath = Path.GetRelativePath(root, path);
                 session.AddFileAlias(alias, relativePath);
                 safeFiles.Add(new SafeFile(alias, safe, relativePath));
                 characters += safe.Length;
             }
-            if (visited > 15_000 || safeFiles.Count >= MaxFiles || characters >= maxContextCharacters) { limited = true; break; }
+            if (visited > 15_000 || safeFiles.Count >= MaxFiles || characters >= maxContextCharacters || inputBytes > 64 * 1024 * 1024) { limited = true; break; }
         }
         // Entities learned in later files must also be removed from earlier files.
         var finalFiles = new List<SafeFile>();
         int finalCharacters = 0;
         foreach (var file in safeFiles)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var updated = file with { Content = session.Sanitize(file.Content) };
             if (finalCharacters + updated.Content.Length > maxContextCharacters) { limited = true; skipped++; continue; }
             finalFiles.Add(updated); finalCharacters += updated.Content.Length;
         }
-        return new ScanSummary(finalFiles.Count, skipped, finalCharacters, limited, finalFiles);
+        return new ScanSummary(finalFiles.Count, skipped, finalCharacters, limited, finalFiles, skippedFiles);
     }
 }

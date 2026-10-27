@@ -66,7 +66,7 @@
     <Border Grid.Column="2" Classes="panel" Background="{StaticResource ChatBackground}" ClipToBounds="True">
       <Grid RowDefinitions="Auto,*">
         <Grid RowDefinitions="Auto,Auto" Margin="24,18,22,14">
-          <Grid ColumnDefinitions="*,Auto">
+          <Grid>
             <Button Name="ChatActions" Classes="ghost" Padding="0" HorizontalAlignment="Left">
               <StackPanel Orientation="Horizontal" Spacing="10"><TextBlock Text="{Binding Active.Title}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="{Binding TitleMaxWidth}" /><TextBlock Text="⌄" Classes="muted" /></StackPanel>
               <Button.Flyout>
@@ -80,33 +80,37 @@
                 </Flyout>
               </Button.Flyout>
             </Button>
-            <Button Grid.Column="1" Command="{Binding OpenModelOptionsCommand}" Classes="icon" ToolTip.Tip="{Binding Text[ChatSettings]}"><Path Classes="outline" Data="{StaticResource SettingsIcon}" Width="18" Height="18" /></Button>
           </Grid>
           <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,4,0,0">
             <Button Content="{Binding Active.Session.AssistantModelName}" Command="{Binding OpenModelOptionsCommand}" Classes="ghost" FontSize="12" Padding="0" HorizontalAlignment="Left" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="13">
-              <StackPanel Orientation="Horizontal" Spacing="5" ToolTip.Tip="{Binding Active.Session.CleanerConnectionTip}">
+              <Button Name="ToggleCleanerButton" Command="{Binding Active.Session.ToggleCleanerCommand}" Classes="ghost" Padding="3,2" MinHeight="24" ToolTip.Tip="{Binding Active.Session.CleanerToggleTip}" AutomationProperties.Name="{Binding Active.Session.CleanerToggleTip}">
+              <StackPanel Orientation="Horizontal" Spacing="5">
                 <Ellipse Width="6" Height="6" Fill="{Binding Active.Session.CleanerConnectionColor}" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Text[CleanerModel]}" Classes="muted" FontSize="10" VerticalAlignment="Center" />
                 <TextBlock Name="CleanerSignal" Text="{Binding Active.Session.CleanerConnectionLabel}" FontSize="10" VerticalAlignment="Center" />
               </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="5" ToolTip.Tip="{Binding Active.Session.ChatConnectionTip}">
+              </Button>
+              <Button Name="ToggleAssistantButton" Command="{Binding Active.Session.ToggleAssistantCommand}" Classes="ghost" Padding="3,2" MinHeight="24" ToolTip.Tip="{Binding Active.Session.AssistantToggleTip}" AutomationProperties.Name="{Binding Active.Session.AssistantToggleTip}">
+              <StackPanel Orientation="Horizontal" Spacing="5">
                 <Ellipse Width="6" Height="6" Fill="{Binding Active.Session.ChatConnectionColor}" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Text[AssistantModel]}" Classes="muted" FontSize="10" VerticalAlignment="Center" />
                 <TextBlock Name="ChatSignal" Text="{Binding Active.Session.ChatConnectionLabel}" FontSize="10" VerticalAlignment="Center" />
               </StackPanel>
+              </Button>
             </StackPanel>
           </Grid>
         </Grid>
 
         <Grid Grid.Row="1" DataContext="{Binding Active.Session}" Margin="14,0,14,12">
+          <Grid Name="MainWorkArea" IsVisible="{Binding ShowMainWorkArea}">
           <Grid local:SmoothVisibility.Motion="View" local:SmoothVisibility.IsShown="{Binding IsChatView}" RowDefinitions="*,Auto,Auto,Auto">
             <Grid ClipToBounds="True">
               <StackPanel IsVisible="{Binding ShowWelcome}" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400" Spacing="16" Margin="24">
                 <Path Data="{StaticResource ShieldIcon}" Classes="outline" Width="48" Height="48" Stroke="#369AFF" />
-                <TextBlock Text="{Binding Text[WelcomeTitle]}" FontSize="24" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding Text[SimpleWelcomeHelp]}" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" LineHeight="22" />
-                <Button Content="{Binding Text[FolderContext]}" Command="{Binding $parent[Window].DataContext.OpenContextOptionsCommand}" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding WorkspaceWelcomeTitle}" FontSize="24" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding WorkspaceWelcomeHelp}" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" LineHeight="22" />
+                <Button Name="StartWorkButton" IsVisible="{Binding CanStartContextPreparation}" Content="{Binding Text[PrepareShort]}" Command="{Binding PrepareCommand}" HorizontalAlignment="Center" Classes="primary" />
               </StackPanel>
               <ScrollViewer Name="ChatScroll" IsVisible="{Binding HasChat}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="{Binding $parent[Window].DataContext.ChatScrollBarVisibility}">
                 <ItemsControl ItemsSource="{Binding Chat}" Margin="8,0">
@@ -175,10 +179,42 @@
           </Grid>
           <Grid local:SmoothVisibility.Motion="View" local:SmoothVisibility.IsShown="{Binding IsFilesView}" RowDefinitions="Auto,*" Margin="8,5">
             <StackPanel Spacing="10" Margin="0,0,0,14"><Button Content="{Binding Text[BackToChat]}" Command="{Binding ShowChatCommand}" Classes="ghost" HorizontalAlignment="Left" /><TextBlock Text="{Binding Text[FilesHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" /></StackPanel>
-            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"><ItemsControl ItemsSource="{Binding Files}"><ItemsControl.ItemTemplate><DataTemplate>
+            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"><StackPanel><ItemsControl ItemsSource="{Binding Files}"><ItemsControl.ItemTemplate><DataTemplate>
               <Border Classes="card" Padding="12" Margin="0,0,0,7"><StackPanel Spacing="5"><TextBlock Text="{Binding Alias}" FontSize="12" FontWeight="SemiBold" /><SelectableTextBlock Text="{Binding LocalRelativePath}" TextWrapping="Wrap" FontSize="11" Classes="muted" /></StackPanel></Border>
-            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
+            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+              <ItemsControl ItemsSource="{Binding SkippedFiles}"><ItemsControl.ItemTemplate><DataTemplate>
+                <Border Classes="card" Padding="12" Margin="0,0,0,7"><StackPanel Spacing="5"><TextBlock Text="{Binding LocalRelativePath}" FontSize="12" TextWrapping="Wrap" /><TextBlock Text="{Binding Reason}" Classes="muted" FontSize="11" TextWrapping="Wrap" /></StackPanel></Border>
+              </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            </StackPanel></ScrollViewer>
           </Grid>
+          </Grid>
+          <ScrollViewer Name="SetupGate" IsVisible="{Binding ShowSetupGate}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel VerticalAlignment="Center" MaxWidth="440" Spacing="16" Margin="24,32">
+              <Path Data="{StaticResource ShieldIcon}" Classes="outline" Width="46" Height="46" Stroke="#369AFF" />
+              <TextBlock Text="{Binding Text[ConnectModelTitle]}" FontSize="24" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding Text[SetupRequiredHelp]}" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" LineHeight="22" />
+              <Border Classes="card" Padding="16">
+                <StackPanel Spacing="18">
+                  <Grid ColumnDefinitions="12,*,Auto">
+                    <Ellipse Width="8" Height="8" Fill="{Binding AssistantReadinessColor}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Margin="10,0" Spacing="4"><TextBlock Text="{Binding Text[TaskModelTitle]}" FontWeight="SemiBold" /><TextBlock Text="{Binding ChatConnectionLabel}" Foreground="{Binding ChatConnectionColor}" FontSize="12" /></StackPanel>
+                    <Button Grid.Column="2" Content="{Binding Text[Configure]}" Command="{Binding $parent[Window].DataContext.OpenModelOptionsCommand}" Classes="ghost" FontSize="12" />
+                  </Grid>
+                  <Grid ColumnDefinitions="12,*,Auto">
+                    <Ellipse Width="8" Height="8" Fill="{Binding CleanerReadinessColor}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Margin="10,0" Spacing="4"><TextBlock Text="{Binding Text[LocalOllamaChatTitle]}" FontWeight="SemiBold" /><TextBlock Text="{Binding CleanerConnectionLabel}" Foreground="{Binding CleanerConnectionColor}" FontSize="12" /></StackPanel>
+                    <Button Grid.Column="2" Content="{Binding Text[Configure]}" Command="{Binding $parent[Window].DataContext.OpenCleanerOptionsCommand}" Classes="ghost" FontSize="12" />
+                  </Grid>
+                  <Grid ColumnDefinitions="12,*,Auto">
+                    <Ellipse Width="8" Height="8" Fill="{Binding FolderReadinessColor}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Margin="10,0" Spacing="4"><TextBlock Text="{Binding Text[FolderOptionalTitle]}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{Binding Folder}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="200" /></StackPanel>
+                    <Button Grid.Column="2" Content="{Binding Text[ChooseFolderShort]}" Command="{Binding BrowseCommand}" Classes="ghost" FontSize="12" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+              <TextBlock Text="{Binding Text[SupportedContextFiles]}" Classes="muted" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
+            </StackPanel>
+          </ScrollViewer>
           <Border Background="#391E29" BorderBrush="#6C3042" BorderThickness="1" CornerRadius="10" Padding="12" IsVisible="{Binding HasError}" VerticalAlignment="Bottom" Margin="0,0,0,85">
             <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Error}" Foreground="#F3B7C3" TextWrapping="Wrap" FontSize="12" /><Button Grid.Column="1" Content="×" Classes="icon" Command="{Binding DismissErrorCommand}" /></Grid>
           </Border>
@@ -191,16 +227,39 @@
 
     <Border Name="ModelsSidebar" Grid.Column="4" Classes="panel" Width="{Binding ModelsSidebarPixels}" ClipToBounds="True" Padding="{Binding ModelsSidebarPadding}">
       <Border.Transitions><Transitions><DoubleTransition Property="Width" Duration="0:0:0.5" Easing="CubicEaseInOut" /><ThicknessTransition Property="Padding" Duration="0:0:0.5" Easing="CubicEaseInOut" /></Transitions></Border.Transitions>
-      <Grid RowDefinitions="Auto,*,Auto">
+      <Grid RowDefinitions="Auto,*">
         <Grid Name="ModelsHeader" ColumnDefinitions="*,44" Width="{Binding ModelsHeaderPixels}" HorizontalAlignment="Left" Margin="0,0,0,22">
           <Grid.Transitions><Transitions><DoubleTransition Property="Width" Duration="0:0:0.5" Easing="CubicEaseInOut" /></Transitions></Grid.Transitions>
-          <TextBlock Text="{Binding Text[ChatSettings]}" Width="{Binding ModelsBrandPixels}" ClipToBounds="True" HorizontalAlignment="Left" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" local:SmoothVisibility.Motion="Sidebar" local:SmoothVisibility.IsShown="{Binding ModelsSidebarOpen}">
-            <TextBlock.Transitions><Transitions><DoubleTransition Property="Width" Duration="0:0:0.5" Easing="CubicEaseInOut" /><DoubleTransition Property="Opacity" Duration="0:0:0.5" Easing="CubicEaseInOut" /></Transitions></TextBlock.Transitions>
-          </TextBlock>
+          <Grid ColumnDefinitions="*,34" Width="{Binding ModelsBrandPixels}" ClipToBounds="True" HorizontalAlignment="Left" IsEnabled="{Binding ModelsSidebarOpen}" local:SmoothVisibility.Motion="Sidebar" local:SmoothVisibility.IsShown="{Binding ModelsSidebarOpen}">
+            <Grid.Transitions><Transitions><DoubleTransition Property="Width" Duration="0:0:0.5" Easing="CubicEaseInOut" /><DoubleTransition Property="Opacity" Duration="0:0:0.5" Easing="CubicEaseInOut" /></Transitions></Grid.Transitions>
+            <TextBlock Text="{Binding Text[ChatSettings]}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <Button Name="ModelChatActionsButton" Grid.Column="1" Classes="icon" Width="34" Height="34" MinWidth="34" MinHeight="34" Padding="4,0" IsEnabled="{Binding NotBusy}" ToolTip.Tip="{Binding Text[ChatActionsLabel]}" AutomationProperties.Name="{Binding Text[ChatActionsLabel]}">
+              <TextBlock Text="⋮" FontSize="22" VerticalAlignment="Center" />
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedRight">
+                  <Flyout.FlyoutPresenterTheme>
+                    <ControlTheme TargetType="FlyoutPresenter" BasedOn="{StaticResource {x:Type FlyoutPresenter}}">
+                      <Setter Property="Background" Value="#0D1C2A" /><Setter Property="BorderBrush" Value="#294055" /><Setter Property="BorderThickness" Value="1" />
+                      <Setter Property="CornerRadius" Value="12" /><Setter Property="Padding" Value="8" />
+                    </ControlTheme>
+                  </Flyout.FlyoutPresenterTheme>
+                  <StackPanel Width="240" Spacing="5">
+                    <Button Name="ExportChatButton" Content="{Binding Text[ExportChat]}" Command="{Binding ExportChatCommand}" Click="CloseModelChatActionsMenu" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" MinHeight="32" Padding="10,6" FontSize="12" />
+                    <Button Name="ArchiveChatButton" Command="{Binding ArchiveChatCommand}" Click="CloseModelChatActionsMenu" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Height="34" MinHeight="34" Padding="10,6" ToolTip.Tip="{Binding ArchiveActionHelp}">
+                      <Grid ColumnDefinitions="18,*"><Path Classes="outline" Width="16" Height="16" Data="{StaticResource ArchiveIcon}" /><TextBlock Grid.Column="1" Text="{Binding ArchiveActionLabel}" Margin="9,0,0,0" FontSize="12" VerticalAlignment="Center" /></Grid>
+                    </Button>
+                    <Button Name="DeleteChatButton" Command="{Binding DeleteChatCommand}" Click="CloseModelChatActionsMenu" Classes="danger" HorizontalAlignment="Stretch" Height="34" MinHeight="34" Padding="10,6" ToolTip.Tip="{Binding Text[DeleteChatHelp]}">
+                      <Grid ColumnDefinitions="18,*"><Path Classes="outline" Width="16" Height="16" Data="{StaticResource TrashIcon}" Stroke="#FF5267" /><TextBlock Grid.Column="1" Text="{Binding Text[DeleteChat]}" Margin="9,0,0,0" FontSize="12" VerticalAlignment="Center" /></Grid>
+                    </Button>
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+          </Grid>
           <Button Name="ToggleModelsButton" Grid.Column="1" Command="{Binding ToggleModelsCommand}" Classes="icon sidebar-toggle" ToolTip.Tip="{Binding ModelsToggleTip}" AutomationProperties.Name="{Binding ModelsToggleTip}"><Grid><Path Classes="outline" Data="{StaticResource CloseIcon}" Width="24" Height="24" IsVisible="{Binding ModelsSidebarOpen}" /><Path Classes="outline sidebar-chevron" Data="{StaticResource ChevronLeftIcon}" IsVisible="{Binding !ModelsSidebarOpen}" /></Grid></Button>
         </Grid>
         <ScrollViewer Name="ModelSettingsScroll" IsEnabled="{Binding ModelsSidebarOpen}" Grid.Row="1" Width="{Binding ModelsBodyWidth}" HorizontalAlignment="Left" local:SmoothVisibility.Motion="Sidebar" local:SmoothVisibility.IsShown="{Binding ModelsSidebarOpen}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
-          <StackPanel Spacing="24" DataContext="{Binding Active.Session}" IsEnabled="{Binding NotBusy}">
+          <StackPanel Spacing="18" DataContext="{Binding Active.Session}" IsEnabled="{Binding NotBusy}">
             <StackPanel Name="FolderContextOptions" Spacing="10">
               <TextBlock Text="{Binding Text[FolderContext]}" Classes="label" />
               <Grid ColumnDefinitions="*,Auto">
@@ -212,24 +271,68 @@
             </StackPanel>
             <StackPanel Spacing="10">
               <TextBlock Text="{Binding Text[LocalCleanerTitle]}" Classes="label" />
-              <Expander Classes="model" Name="CleanerOptions" IsExpanded="{Binding CleanerModelExpanded}">
+              <Border Name="CleanerConnectedCard" IsVisible="{Binding ShowCleanerSummary}" Background="#102B26" BorderBrush="#245F4E" BorderThickness="1" CornerRadius="11" Padding="12">
+                <Grid ColumnDefinitions="*,34">
+                  <StackPanel Spacing="7"><TextBlock Text="{Binding AgentModel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><StackPanel Orientation="Horizontal" Spacing="7"><Ellipse Width="7" Height="7" Fill="{Binding CleanerConnectionColor}" VerticalAlignment="Center" /><TextBlock Text="{Binding CleanerConnectionLabel}" Foreground="{Binding CleanerConnectionColor}" FontSize="12" /></StackPanel><TextBlock Text="{Binding Text[OnThisComputer]}" Classes="muted" FontSize="11" /></StackPanel>
+                  <Button Name="EditCleanerButton" Grid.Column="1" Command="{Binding EditCleanerCommand}" Classes="icon" VerticalAlignment="Top" ToolTip.Tip="{Binding Text[EditModel]}" AutomationProperties.Name="{Binding Text[EditModel]}"><TextBlock Text="✎" FontSize="20" /></Button>
+                </Grid>
+              </Border>
+              <Expander Classes="model" Name="CleanerOptions" IsVisible="{Binding ShowCleanerEditor}" IsExpanded="{Binding CleanerModelExpanded}">
                 <Expander.Header><StackPanel Orientation="Horizontal" Spacing="13"><Path Classes="outline" Data="{StaticResource MonitorIcon}" /><TextBlock Text="{Binding CleanerModelName}" TextTrimming="CharacterEllipsis" MaxWidth="190" /></StackPanel></Expander.Header>
                 <StackPanel Spacing="10" Margin="12,6,12,14">
                   <CheckBox IsChecked="{Binding UseAgent}" Content="{Binding Text[EnableCleaner]}" />
-                  <StackPanel Spacing="9" IsVisible="{Binding UseAgent}">
-                    <TextBox Text="{Binding AgentEndpoint}" Watermark="http://localhost:11434" />
-                    <TextBox Text="{Binding AgentModel}" Watermark="{Binding Text[AgentModelHint]}" />
-                    <ComboBox Name="AgentModelSelector" ItemsSource="{Binding AgentModels}" SelectedItem="{Binding SelectedAgentModel}" IsVisible="{Binding HasAgentModels}" PlaceholderText="{Binding Text[LocalModelsHint]}" />
-                    <Grid ColumnDefinitions="*,Auto"><Button Content="{Binding Text[Connect]}" Command="{Binding CheckCleanerCommand}" /><Button Grid.Column="1" Content="↻" Command="{Binding RefreshAgentModelsCommand}" Margin="7,0,0,0" ToolTip.Tip="{Binding Text[RefreshModels]}" /></Grid>
+                  <TextBlock Name="OllamaSetupStatus" Text="{Binding OllamaSetupMessage}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                  <TextBlock Name="OllamaExecutablePath" Text="{Binding OllamaExecutable}" IsVisible="{Binding HasOllamaExecutable}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding OllamaExecutable}" />
+                  <Grid ColumnDefinitions="*,Auto">
+                    <Button Name="FindOllamaButton" Content="{Binding Text[FindOllama]}" Command="{Binding FindOllamaCommand}" Classes="ghost" FontSize="12" Padding="8,6" />
+                    <Button Name="DetectOllamaButton" Grid.Column="1" Content="↻" Command="{Binding DetectOllamaCommand}" Classes="icon" ToolTip.Tip="{Binding Text[CheckOllama]}" AutomationProperties.Name="{Binding Text[CheckOllama]}" />
+                  </Grid>
+                  <Button Name="DownloadOllamaButton" Content="{Binding Text[DownloadOllama]}" Command="{Binding DownloadOllamaCommand}" IsVisible="{Binding NeedsOllamaDownload}" FontSize="12" />
+                  <Button Name="StartOllamaButton" Content="{Binding Text[StartOllama]}" Command="{Binding StartOllamaCommand}" IsVisible="{Binding CanStartOllama}" FontSize="12" />
+                  <StackPanel Name="InstalledAgentModels" Spacing="7" IsVisible="{Binding IsOllamaRunning}">
+                    <TextBlock Text="{Binding Text[InstalledLocalModels]}" FontSize="12" FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="*,Auto">
+                      <ComboBox Name="AgentModelSelector" ItemsSource="{Binding AgentModels}" SelectedItem="{Binding SelectedAgentModel}" IsEnabled="{Binding HasAgentModels}" PlaceholderText="{Binding Text[LocalModelsHint]}" AutomationProperties.Name="{Binding Text[InstalledLocalModels]}" />
+                      <Button Name="RefreshInstalledModelsButton" Grid.Column="1" Content="↻" Command="{Binding RefreshAgentModelsCommand}" Classes="icon" Margin="7,0,0,0" ToolTip.Tip="{Binding Text[RefreshModels]}" AutomationProperties.Name="{Binding Text[RefreshModels]}" />
+                    </Grid>
+                    <TextBlock Name="NoInstalledModelsHint" Text="{Binding Text[OllamaNoInstalledModels]}" IsVisible="{Binding NoInstalledAgentModels}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Text[OllamaSelectedModelMissing]}" IsVisible="{Binding SelectedAgentModelUnavailable}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                    <Button Content="{Binding Text[Connect]}" Command="{Binding CheckCleanerCommand}" />
                   </StackPanel>
+                  <StackPanel Name="DownloadableAgentModels" Spacing="7" IsVisible="{Binding IsOllamaRunning}">
+                    <TextBlock Name="DownloadableModelsLabel" Text="{Binding Text[FreeLocalModels]}" FontSize="12" FontWeight="SemiBold" />
+                    <ComboBox Name="DownloadableAgentModelSelector" ItemsSource="{Binding DownloadableAgentModels}" SelectedItem="{Binding SelectedDownloadableAgentModel}" PlaceholderText="{Binding Text[ChooseDownloadModel]}" AutomationProperties.Name="{Binding Text[FreeLocalModels]}">
+                      <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Model}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Name="ModelDownloadHint" Text="{Binding ModelDownloadHint}" IsVisible="{Binding HasSelectedDownloadableAgentModel}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                    <Expander Header="{Binding Text[OtherLocalModel]}" FontSize="12">
+                      <TextBox Name="OllamaPullModelBox" Text="{Binding ModelToInstall}" MaxLength="200" Watermark="qwen3:4b" FontSize="12" Margin="0,6,0,0" />
+                    </Expander>
+                    <Button Name="InstallOllamaModelButton" Content="{Binding Text[InstallInTerminal]}" Command="{Binding InstallOllamaModelCommand}" FontSize="12" />
+                    <TextBlock Text="{Binding Text[OllamaLocateToInstall]}" IsVisible="{Binding NeedsOllamaExecutable}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Text[OllamaPullHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <Expander Header="{Binding Text[LocalModelConnectionSettings]}" IsVisible="{Binding UseAgent}" FontSize="12">
+                    <StackPanel Spacing="7" Margin="0,6,0,0">
+                      <TextBox Text="{Binding AgentEndpoint}" Watermark="http://localhost:11434" />
+                      <TextBox Text="{Binding AgentModel}" Watermark="{Binding Text[AgentModelHint]}" />
+                    </StackPanel>
+                  </Expander>
                   <TextBlock Text="{Binding Text[AgentHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Text[ImageContextHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                 </StackPanel>
               </Expander>
               <TextBlock Text="{Binding Text[CleanerRulesHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="3,0" />
             </StackPanel>
             <StackPanel Spacing="10">
               <TextBlock Text="{Binding Text[TaskModelTitle]}" Classes="label" />
-              <Expander Classes="model" Name="AssistantOptions" IsExpanded="{Binding ChatModelExpanded}">
+              <Border Name="AssistantConnectedCard" IsVisible="{Binding ShowAssistantSummary}" Background="#102B26" BorderBrush="#245F4E" BorderThickness="1" CornerRadius="11" Padding="12">
+                <Grid ColumnDefinitions="*,34">
+                  <StackPanel Spacing="7"><TextBlock Text="{Binding AssistantModelName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><StackPanel Orientation="Horizontal" Spacing="7"><Ellipse Width="7" Height="7" Fill="{Binding ChatConnectionColor}" VerticalAlignment="Center" /><TextBlock Text="{Binding ChatConnectionLabel}" Foreground="{Binding ChatConnectionColor}" FontSize="12" /></StackPanel><TextBlock Text="{Binding AssistantLocation}" Classes="muted" FontSize="11" TextWrapping="Wrap" /></StackPanel>
+                  <Button Name="EditAssistantButton" Grid.Column="1" Command="{Binding EditAssistantCommand}" Classes="icon" VerticalAlignment="Top" ToolTip.Tip="{Binding Text[EditModel]}" AutomationProperties.Name="{Binding Text[EditModel]}"><TextBlock Text="✎" FontSize="20" /></Button>
+                </Grid>
+              </Border>
+              <Expander Classes="model" Name="AssistantOptions" IsVisible="{Binding ShowAssistantEditor}" IsExpanded="{Binding ChatModelExpanded}">
                 <Expander.Header><StackPanel Orientation="Horizontal" Spacing="13"><Path Classes="outline" Data="{StaticResource CloudIcon}" IsVisible="{Binding IsRemote}" Stroke="#77B8FF" /><Path Classes="outline" Data="{StaticResource MonitorIcon}" IsVisible="{Binding IsOllama}" /><TextBlock Text="{Binding AssistantModelName}" TextTrimming="CharacterEllipsis" MaxWidth="190" /></StackPanel></Expander.Header>
                 <StackPanel Spacing="10" Margin="12,6,12,14">
                   <ComboBox Name="ProviderSelector" ItemsSource="{Binding Providers}" SelectedItem="{Binding SelectedProvider}" />
@@ -240,38 +343,38 @@
                     <Grid ColumnDefinitions="*,Auto"><Button Content="{Binding Text[Connect]}" Command="{Binding CheckChatCommand}" /><Button Grid.Column="1" Content="↻" Command="{Binding RefreshModelsCommand}" Margin="7,0,0,0" ToolTip.Tip="{Binding Text[RefreshModels]}" /></Grid>
                   </StackPanel>
                   <StackPanel Spacing="9" IsVisible="{Binding IsRemote}">
-                    <TextBox Text="{Binding ApiEndpoint}" Watermark="https://…/v1/chat/completions" /><TextBox Text="{Binding ApiModel}" Watermark="{Binding Text[ApiModelHint]}" /><TextBox Text="{Binding ApiKey}" PasswordChar="●" Watermark="{Binding Text[ApiKeyHint]}" />
+                    <TextBox Text="{Binding ApiEndpoint}" Watermark="https://…/v1/chat/completions" /><TextBox Text="{Binding ApiModel}" Watermark="{Binding Text[ApiModelHint]}" />
+                    <CheckBox Name="UseApiKeyCheckbox" IsChecked="{Binding UseApiKey}" Content="{Binding Text[UseApiKey]}" />
+                    <TextBox Name="ApiKeyBox" Text="{Binding ApiKey}" IsVisible="{Binding UseApiKey}" PasswordChar="●" Watermark="{Binding Text[ApiKeyHint]}" />
+                    <TextBlock Name="AnonymousApiHelp" Text="{Binding Text[AnonymousApiHelp]}" IsVisible="{Binding !UseApiKey}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                     <Button Content="{Binding Text[Connect]}" Command="{Binding CheckChatCommand}" /><TextBlock Text="{Binding Text[ApiConnectionHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                   </StackPanel>
                 </StackPanel>
               </Expander>
-              <TextBlock Text="{Binding AssistantLocation}" Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="3,0" />
+              <TextBlock Text="{Binding AssistantLocation}" IsVisible="{Binding ShowAssistantEditor}" Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="3,0" />
             </StackPanel>
-            <Border BorderBrush="#1C3042" BorderThickness="0,1,0,0" Padding="0,20,0,0">
-              <StackPanel Spacing="19">
+            <Border Name="ContextTrimmingOptions" BorderBrush="#1C3042" BorderThickness="0,1,0,0" Padding="0,14,0,0">
+              <StackPanel Spacing="10">
                 <TextBlock Text="{Binding Text[ContextTrimming]}" Classes="label" ToolTip.Tip="{Binding Text[TrimmingHelp]}" />
-                <RadioButton Name="MinimalTrimRadio" GroupName="Trimming" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding MinimalTrimming}"><StackPanel Spacing="4"><TextBlock Text="{Binding Text[TrimMinimal]}" /><TextBlock Text="{Binding Text[TrimMinimalHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="18" /></StackPanel></RadioButton>
-                <RadioButton Name="ModerateTrimRadio" GroupName="Trimming" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding ModerateTrimming}"><StackPanel Spacing="4"><TextBlock Text="{Binding Text[TrimModerate]}" /><TextBlock Text="{Binding Text[TrimModerateHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="18" /></StackPanel></RadioButton>
-                <RadioButton Name="MaximumTrimRadio" GroupName="Trimming" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding MaximumTrimming}"><StackPanel Spacing="4"><TextBlock Text="{Binding Text[TrimMaximum]}" /><TextBlock Text="{Binding Text[TrimMaximumHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="18" /></StackPanel></RadioButton>
-                <RadioButton Name="CustomTrimRadio" GroupName="Trimming" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding CustomTrimming}"><StackPanel Spacing="4"><TextBlock Text="{Binding Text[TrimCustom]}" /><TextBlock Text="{Binding Text[TrimCustomHelp]}" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="18" /></StackPanel></RadioButton>
-                <StackPanel Spacing="6">
-                  <TextBox Name="TrimmingInstructionsBox" Text="{Binding TrimmingInstructions}" MaxLength="1000" IsEnabled="{Binding CustomTrimming}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="135" MaxHeight="170" FontSize="12" LineHeight="20" Watermark="{Binding Text[TrimInstructionsHint]}" />
+                <RadioButton Name="MinimalTrimRadio" GroupName="Trimming" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding MinimalTrimming}" ToolTip.Tip="{Binding Text[TrimMinimalHelp]}"><TextBlock Text="{Binding Text[TrimMinimal]}" FontSize="13" /></RadioButton>
+                <RadioButton Name="ModerateTrimRadio" GroupName="Trimming" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding ModerateTrimming}" ToolTip.Tip="{Binding Text[TrimModerateHelp]}"><TextBlock Text="{Binding Text[TrimModerate]}" FontSize="13" /></RadioButton>
+                <RadioButton Name="MaximumTrimRadio" GroupName="Trimming" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding MaximumTrimming}" ToolTip.Tip="{Binding Text[TrimMaximumHelp]}"><TextBlock Text="{Binding Text[TrimMaximum]}" FontSize="13" /></RadioButton>
+                <RadioButton Name="CustomTrimRadio" GroupName="Trimming" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding CustomTrimming}" ToolTip.Tip="{Binding Text[TrimCustomHelp]}"><TextBlock Text="{Binding Text[TrimCustom]}" FontSize="13" /></RadioButton>
+                <StackPanel Name="CustomCleanupOptions" Spacing="8" IsVisible="{Binding CustomTrimming}" Margin="8,0,0,0">
+                  <RadioButton Name="CodeCleanupRadio" GroupName="CustomCleanup" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding CustomCodeCleanup}"><TextBlock Text="{Binding Text[CleanCode]}" FontSize="12" TextWrapping="Wrap" /></RadioButton>
+                  <RadioButton Name="TextCleanupRadio" GroupName="CustomCleanup" Theme="{StaticResource TrimmingRadioTheme}" IsChecked="{Binding CustomTextCleanup}"><TextBlock Text="{Binding Text[CleanTextByDescription]}" FontSize="12" TextWrapping="Wrap" /></RadioButton>
+                </StackPanel>
+                <TextBlock Text="{Binding TrimmingSummary}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                <TextBlock Name="CodeCleanupHint" Text="{Binding Text[CleanCodeHelp]}" IsVisible="{Binding ShowCodeCleanupHint}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                <TextBlock Name="AutomaticTrimmingHint" Text="{Binding AutomaticTrimmingHint}" IsVisible="{Binding ShowAutomaticTrimmingHint}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                <StackPanel Name="CustomTrimmingEditor" Spacing="4" IsVisible="{Binding ShowTrimmingInstructions}">
+                  <TextBox Name="TrimmingInstructionsBox" Text="{Binding TrimmingInstructions}" MaxLength="1000" IsEnabled="{Binding ShowTrimmingInstructions}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="76" MaxHeight="120" FontSize="12" LineHeight="18" Watermark="{Binding Text[TrimInstructionsHint]}" />
                   <TextBlock Text="{Binding InstructionsCount}" Classes="muted" FontSize="12" HorizontalAlignment="Right" />
                 </StackPanel>
               </StackPanel>
             </Border>
           </StackPanel>
         </ScrollViewer>
-        <StackPanel Grid.Row="2" IsEnabled="{Binding ModelsSidebarOpen}" Spacing="9" Width="{Binding ModelsBodyWidth}" HorizontalAlignment="Left" local:SmoothVisibility.Motion="Sidebar" local:SmoothVisibility.IsShown="{Binding ModelsSidebarOpen}" Margin="0,14,0,0">
-          <Border BorderBrush="#1C3042" BorderThickness="0,1,0,0" Margin="0,0,0,3" />
-          <Button Name="ExportChatButton" Content="{Binding Text[ExportChat]}" Command="{Binding ExportChatCommand}" Classes="ghost" HorizontalAlignment="Stretch" />
-          <Button Name="ArchiveChatButton" Command="{Binding ArchiveChatCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,13" Background="Transparent">
-            <Grid ColumnDefinitions="25,*,Auto"><Path Classes="outline" Data="{StaticResource ArchiveIcon}" /><StackPanel Grid.Column="1" Spacing="4" Margin="12,0"><TextBlock Text="{Binding ArchiveActionLabel}" FontSize="13" /><TextBlock Text="{Binding ArchiveActionHelp}" Classes="muted" FontSize="11" TextWrapping="Wrap" /></StackPanel><TextBlock Grid.Column="2" Text="›" Classes="muted" VerticalAlignment="Center" /></Grid>
-          </Button>
-          <Button Name="DeleteChatButton" Command="{Binding DeleteChatCommand}" Classes="danger" HorizontalAlignment="Stretch" Padding="14,13">
-            <Grid ColumnDefinitions="25,*,Auto"><Path Classes="outline" Data="{StaticResource TrashIcon}" Stroke="#FF5267" /><StackPanel Grid.Column="1" Spacing="4" Margin="12,0"><TextBlock Text="{Binding Text[DeleteChat]}" FontSize="13" FontWeight="SemiBold" /><TextBlock Text="{Binding Text[DeleteChatHelp]}" Classes="muted" FontSize="11" TextWrapping="Wrap" /></StackPanel><TextBlock Grid.Column="2" Text="›" VerticalAlignment="Center" /></Grid>
-          </Button>
-        </StackPanel>
       </Grid>
     </Border>
   </Grid>

@@ -4,6 +4,9 @@ using System.Text.Json;
 using ContextGuard.Core;
 
 int passed = 0, failed = 0;
+await Check("Ollama setup detection, startup, terminal validation and cancellation", OllamaSetupChecks.Run);
+await Check("Mixed folder formats, local image reading, extraction bounds and validation", FileContextChecks.Run);
+await Check("Anonymous API metadata and bounded explicit connection fallback", AnonymousApiChecks.Run);
 await Check("Secrets in JSON, env, bearer, URI and private keys", () =>
 {
     var session = Session();
@@ -305,7 +308,7 @@ await Check("Only recent complete message pairs enter outbound requests after tr
 {
     var history = Enumerable.Range(0, 8).SelectMany(i => new[] { new ChatMessage("user", "task-" + i), new ChatMessage("assistant", "reply-" + i) }).ToArray();
     var latest = new ChatMessage("user", "new-task with email user@example.com");
-    foreach (var mode in new[] { ContextTrimmingMode.Minimal, ContextTrimmingMode.Moderate, ContextTrimmingMode.Maximum, ContextTrimmingMode.Custom })
+    foreach (var mode in Enum.GetValues<ContextTrimmingMode>())
     {
         var selected = ContextReducer.SelectHistory(history, latest, mode);
         Equal(ContextReducer.RetainedMessages(mode) + 1, selected.Count, "History retention");
@@ -319,6 +322,39 @@ await Check("Only recent complete message pairs enter outbound requests after tr
     }));
     await client.ChatAsync(new(ModelProvider.RemoteApi, "https://api.example.com/v1/chat/completions", "demo"), "short context",
         ContextReducer.SelectHistory(history, latest, ContextTrimmingMode.Maximum), Session(), _ => { }, default);
+});
+await Check("Code cleanup removes credentials locally without editorial rewriting or an instruction prerequisite", async () =>
+{
+    using var folder = new TestFolder();
+    string source = "public static class Demo {\n" +
+        "  const string apiKey = \"sk-proj-codeDemoSecret0123456789\";\n" +
+        "  const string password = \"code-only-password\";\n" +
+        "  const string contact = \"code@example.com\";\n" +
+        "  const string tenant = \"PrivateCodeProject\";\n" +
+        "  const string configured = \"known-code-credential\";\n" +
+        string.Concat(Enumerable.Range(0, 120).Select(i => $"  static int Add{i}(int left, int right) => left + right;\n")) + "}\n";
+    string path = Path.Combine(folder.Path, "demo.cs"); File.WriteAllText(path, source);
+    int requests = 0;
+    using var client = new ModelClient(new StubHandler(_ => { requests++; throw new Exception("Code cleanup must not request a summary"); }));
+    var preparation = new ContextPreparationService(new FolderCollector(), client);
+    var settings = new ContextPreparationSettings(folder.Path, new(ProtectionProfile.Everything, ["PrivateCodeProject"]), 12_000,
+        ContextTrimmingMode.Code, "", false, new(ModelProvider.Ollama, "http://localhost:11434", ""), "known-code-credential");
+    var prepared = await preparation.PrepareAsync(settings, null, default);
+    Equal(0, requests, "Built-in cleanup works with no local model or instructions");
+    Equal(12_000, prepared.TargetCharacters, "Code keeps the collection budget without editorial reduction");
+    True(prepared.Text.Length > ContextReducer.TargetCharacters(12_000, ContextTrimmingMode.Custom), "Code is not reduced to the editorial budget");
+    Contains(prepared.Text, "public static class Demo");
+    Contains(prepared.Text, "static int Add119(int left, int right) => left + right;");
+    Contains(prepared.Text, "const string apiKey = \"[CG_");
+    Excludes(prepared.Text, "sk-proj-codeDemoSecret0123456789", "code-only-password", "code@example.com", "PrivateCodeProject", "known-code-credential");
+    Equal(source, File.ReadAllText(path), "Source files are unchanged");
+    File.WriteAllText(Path.Combine(folder.Path, "small.cs"), "static int Keep(int value) => value;");
+    var bounded = await preparation.PrepareAsync(settings with { CollectionLimit = 4000 }, null, default);
+    True(bounded.Text.Length <= bounded.TargetCharacters && bounded.Snapshot.LimitReached && bounded.Snapshot.Included == 1,
+        "Code still respects bounded collection and excludes oversized source files");
+    using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+    try { await preparation.PrepareAsync(settings, null, cancellation.Token); throw new Exception("Cancelled code cleanup accepted"); }
+    catch (OperationCanceledException) { }
 });
 await Check("Custom trimming uses a validated local model and sanitizes its result before review", async () =>
 {

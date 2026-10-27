@@ -17,9 +17,23 @@ Use fictional examples only. Do not include real documents, keys, personal data,
 - [Settings](left-sidebar/settings.md)
 - [Collapsing](left-sidebar/collapsing.md)
 
+## Main area
+
+- [Header model switches](main-area/model-switches.md)
+
+## Right sidebar
+
+- [Local privacy model and Ollama setup](right-sidebar/local-cleaner.md)
+- [Model connections and workspace readiness](right-sidebar/model-connections.md)
+- [External API authentication](right-sidebar/anonymous-api.md)
+- [Compact context trimming](right-sidebar/context-trimming.md)
+- [Chat actions menu](right-sidebar/chat-actions.md)
+
 ## General requirements
 
 - [Storage and export](general/storage-and-export.md)
 - [Data protection](general/data-protection.md)
+- [Mixed folder content](general/folder-files.md)
 - [Design and animations](general/design-and-animations.md)
+- [Approved animation baseline — preserve the user-approved motion](general/approved-animation-baseline.md)
 - [Sidebar state persistence](general/sidebar-state.md)

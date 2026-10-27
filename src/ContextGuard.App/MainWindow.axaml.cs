@@ -29,6 +29,15 @@ public partial class MainWindow : Window
             { Title = workspace.Text["ExportFolderTitle"], AllowMultiple = false });
             return picked.Count > 0 ? picked[0].TryGetLocalPath() : null;
         };
+        workspace.PickOllamaExecutableAsync = async () =>
+        {
+            var picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = workspace.Text["FindOllama"], AllowMultiple = false,
+                FileTypeFilter = [new FilePickerFileType("Ollama") { Patterns = [OperatingSystem.IsWindows() ? "ollama.exe" : "ollama"] }]
+            });
+            return picked.Count > 0 ? picked[0].TryGetLocalPath() : null;
+        };
         Opened += async (_, _) => await workspace.InitializeAsync();
         Closing += async (_, e) =>
         {
@@ -79,9 +88,16 @@ public partial class MainWindow : Window
         this.FindControl<ScrollViewer>("ChatScroll")?.ScrollToEnd(), DispatcherPriority.Background);
 
     private void CloseChatMenu(object? sender, RoutedEventArgs e) => this.FindControl<Button>("ChatActions")?.Flyout?.Hide();
+    private void CloseModelChatActionsMenu(object? sender, RoutedEventArgs e) => this.FindControl<Button>("ModelChatActionsButton")?.Flyout?.Hide();
 
     private void ModalChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(WorkspaceViewModel.ModelsSidebarOpen) or nameof(WorkspaceViewModel.NotBusy) or
+            nameof(WorkspaceViewModel.ModalOpen) or nameof(WorkspaceViewModel.Active))
+        {
+            if (!workspace.ModelsSidebarOpen || !workspace.NotBusy || workspace.ModalOpen || e.PropertyName == nameof(WorkspaceViewModel.Active))
+                this.FindControl<Button>("ModelChatActionsButton")?.Flyout?.Hide();
+        }
         if (e.PropertyName != nameof(WorkspaceViewModel.DeleteConfirmationOpen)) return;
         if (workspace.DeleteConfirmationOpen)
         {

@@ -96,6 +96,7 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
     public event Action? RequestSettings;
     public event Action? ScrollChat;
     public Func<Task<string?>>? PickFolderAsync { get; set; }
+    public Func<Task<string?>>? PickOllamaExecutableAsync { get; set; }
     public ConversationViewModel? Active
     {
         get => active;
@@ -197,7 +198,9 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
     public RelayCommand ExportAllCommand { get; }
     public RelayCommand DismissStorageMessageCommand { get; }
     public RelayCommand OpenContextOptionsCommand { get; }
-    public WorkspaceViewModel(Func<ModelClient>? clientFactory = null, ChatArchiveService? archive = null, ISidebarStateService? sidebarState = null)
+    public RelayCommand OpenCleanerOptionsCommand { get; }
+    public WorkspaceViewModel(Func<ModelClient>? clientFactory = null, ChatArchiveService? archive = null, ISidebarStateService? sidebarState = null,
+        IOllamaHost? ollamaHost = null)
     {
         this.archive = archive;
         this.sidebarState = sidebarState;
@@ -205,11 +208,15 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
         sessionFactory = () =>
         {
             var client = clientFactory?.Invoke() ?? new ModelClient();
-            return new MainViewModel(client, new ContextPreparationService(new FolderCollector(), client), new ConversationTitleService(client));
+            var session = new MainViewModel(client, new ContextPreparationService(new FolderCollector(), client, client), new ConversationTitleService(client),
+                new OllamaSetupService(ollamaHost ?? new DesktopOllamaHost(), client));
+            session.PickOllamaExecutableAsync = () => PickOllamaExecutableAsync?.Invoke() ?? Task.FromResult<string?>(null);
+            return session;
         };
         ToggleChatsCommand = Command(() => ChatsSidebarOpen = !ChatsSidebarOpen);
         ToggleModelsCommand = Command(() => ModelsSidebarOpen = !ModelsSidebarOpen);
-        OpenModelOptionsCommand = Command(() => { ModelsSidebarOpen = true; if (Active is { } chat) chat.Session.ChatModelExpanded = true; });
+        OpenModelOptionsCommand = Command(() => { ModelsSidebarOpen = true; Active?.Session.EditAssistantCommand.Execute(null); });
+        OpenCleanerOptionsCommand = Command(() => { ModelsSidebarOpen = true; Active?.Session.EditCleanerCommand.Execute(null); });
         OpenContextOptionsCommand = Command(() => { ModelsSidebarOpen = true; Active?.Session.ShowContextCommand.Execute(null); });
         ToggleArchiveViewCommand = Command(() => ShowArchive(!ShowingArchive), () => NotBusy && (ShowingArchive || ArchivedCount > 0));
         ArchiveChatCommand = Command(() => { if (Active is { } chat) ArchiveChat(chat); }, () => NotBusy && Active is not null);
@@ -243,12 +250,13 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
         {
             session.Folder = previous.Folder; session.ProfileIndex = previous.ProfileIndex;
             session.CustomTerms = previous.CustomTerms; session.ContextLimit = previous.ContextLimit;
+            session.CustomCodeCleanup = previous.CustomCodeCleanup;
             session.TrimmingMode = previous.TrimmingMode; session.TrimmingInstructions = previous.TrimmingInstructions;
             session.UseAgent = previous.UseAgent; session.AgentEndpoint = previous.AgentEndpoint;
             session.AgentModel = previous.AgentModel; session.ProviderIndex = previous.ProviderIndex;
             session.OllamaEndpoint = previous.OllamaEndpoint; session.LocalModel = previous.LocalModel;
             session.ApiEndpoint = previous.ApiEndpoint; session.ApiModel = previous.ApiModel;
-            session.ApiKey = previous.ApiKey; session.RestoreLocally = previous.RestoreLocally;
+            session.ApiKey = previous.ApiKey; session.UseApiKey = previous.UseApiKey; session.RestoreLocally = previous.RestoreLocally;
         }
         session.PickFolderAsync = () => PickFolderAsync?.Invoke() ?? Task.FromResult<string?>(null);
         session.PropertyChanged += SessionChanged; session.ScrollChat += OnScrollChat;
@@ -432,6 +440,6 @@ public sealed class WorkspaceViewModel : Bindable, IDisposable
         pendingDeletion = null; deletionTitle = "";
         archive?.Dispose();
         foreach (var chat in Conversations) Release(chat);
-        Conversations.Clear(); VisibleConversations.Clear(); active = null; PickFolderAsync = null; PickExportFolderAsync = null;
+        Conversations.Clear(); VisibleConversations.Clear(); active = null; PickFolderAsync = null; PickExportFolderAsync = null; PickOllamaExecutableAsync = null;
     }
 }

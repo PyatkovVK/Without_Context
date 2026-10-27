@@ -2,13 +2,13 @@ using System.Text;
 
 namespace ContextGuard.Core;
 
-public enum ContextTrimmingMode { Minimal, Moderate, Maximum, Custom }
+public enum ContextTrimmingMode { Minimal, Moderate, Maximum, Custom, Code }
 
 public static class ContextReducer
 {
     public static int TargetCharacters(int collectionLimit, ContextTrimmingMode mode) => Math.Max(1000,
         Math.Clamp(collectionLimit, 4000, FolderCollector.MaxContextChars) * (mode switch
-        { ContextTrimmingMode.Minimal => 3, ContextTrimmingMode.Maximum => 1, _ => 2 }) / 4);
+        { ContextTrimmingMode.Code => 4, ContextTrimmingMode.Minimal => 3, ContextTrimmingMode.Maximum => 1, _ => 2 }) / 4);
 
     public static int RetainedMessages(ContextTrimmingMode mode) => mode switch
     { ContextTrimmingMode.Minimal => 12, ContextTrimmingMode.Maximum => 2, _ => 6 };

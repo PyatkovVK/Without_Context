@@ -209,7 +209,7 @@ company name, surname, project…</value>
     <value>New chat</value>
   </data>
   <data name="NoTextFiles" xml:space="preserve">
-    <value>No suitable text files were found. Check the folder and context limit. PDF, Office, binary and key files are excluded.</value>
+    <value>No readable content was found. Check the folder, supported formats and context limits. Images require a local vision model; credential and key files remain excluded.</value>
   </data>
   <data name="OllamaHelp" xml:space="preserve">
     <value>Ollama must be running. Cloud models are excluded in this mode.</value>
@@ -509,10 +509,10 @@ company name, surname, project…</value>
     <value>The selected assistant is connected.</value>
   </data>
   <data name="ApiConnectionHelp" xml:space="preserve">
-    <value>Connect checks the API model list without sending context or generating a reply.</value>
+    <value>Connection checks never send your documents. If the model list is unavailable, a short test request is used and counts toward the provider's limits.</value>
   </data>
   <data name="ConnectionCheckUnavailable" xml:space="preserve">
-    <value>This API does not expose a supported model-list check. Its connection will be verified after a successful chat request.</value>
+    <value>The service could not confirm this model. Check the compatible API address and model name, then try connecting again.</value>
   </data>
   <data name="ModelNotListed" xml:space="preserve">
     <value>The selected model is not in the API model list. Check its ID and access permissions.</value>
@@ -602,8 +602,11 @@ company name, surname, project…</value>
     <value>Custom</value>
   </data>
   <data name="TrimCustomHelp" xml:space="preserve">
-    <value>Your local cleaner applies the rules below to folder context.</value>
+    <value>Clean code locally or apply your description to text with the local cleaner.</value>
   </data>
+  <data name="CleanCode" xml:space="preserve"><value>Clean code</value></data>
+  <data name="CleanTextByDescription" xml:space="preserve"><value>Clean text by description</value></data>
+  <data name="CleanCodeHelp" xml:space="preserve"><value>Detected tokens and keys are replaced locally; other sensitive data follows your protection profile. Code is kept within context limits.</value></data>
   <data name="TrimInstructionsHint" xml:space="preserve">
     <value>Keep the goals, key facts and relevant code. Remove repetition and details unrelated to the task.</value>
   </data>
@@ -700,4 +703,71 @@ company name, surname, project…</value>
   <data name="SidebarStateWriteFailed" xml:space="preserve">
     <value>Sidebar preferences could not be saved. Check free space and permissions for the application's local data folder.</value>
   </data>
+  <data name="OllamaUnchecked" xml:space="preserve"><value>Open this card to check Ollama on this computer.</value></data>
+  <data name="OllamaMissing" xml:space="preserve"><value>Ollama was not found. Locate ollama.exe or download it from the official website, then check again.</value></data>
+  <data name="OllamaStopped" xml:space="preserve"><value>Ollama is installed. Start the local server to see downloaded models.</value></data>
+  <data name="OllamaRunning" xml:space="preserve"><value>Ollama is running · local models: {0}</value></data>
+  <data name="OllamaChecking" xml:space="preserve"><value>Looking for Ollama and checking the local server…</value></data>
+  <data name="OllamaStarting" xml:space="preserve"><value>Starting Ollama and waiting for the local server…</value></data>
+  <data name="OllamaCheckFailed" xml:space="preserve"><value>The check did not finish. Check the address and try again.</value></data>
+  <data name="FindOllama" xml:space="preserve"><value>Locate Ollama…</value></data>
+  <data name="CheckOllama" xml:space="preserve"><value>Check Ollama and refresh models</value></data>
+  <data name="DownloadOllama" xml:space="preserve"><value>Download from ollama.com ↗</value></data>
+  <data name="StartOllama" xml:space="preserve"><value>Start Ollama</value></data>
+  <data name="InstallLocalModel" xml:space="preserve"><value>Download a local model</value></data>
+  <data name="InstallInTerminal" xml:space="preserve"><value>Install in terminal ↗</value></data>
+  <data name="OllamaPullHelp" xml:space="preserve"><value>These models are free to download and run locally. Installation opens a terminal with download progress. When it finishes, refresh the installed models above.</value></data>
+  <data name="InstalledLocalModels" xml:space="preserve"><value>Installed models</value></data>
+  <data name="FreeLocalModels" xml:space="preserve"><value>Free models to download</value></data>
+  <data name="ChooseDownloadModel" xml:space="preserve"><value>Choose a model to download</value></data>
+  <data name="OllamaNoInstalledModels" xml:space="preserve"><value>No local models installed yet. Choose one below, download it, then refresh this list.</value></data>
+  <data name="OllamaSelectedModelMissing" xml:space="preserve"><value>The selected model is no longer installed. Choose another installed model or download it again.</value></data>
+  <data name="OllamaModelAlreadyInstalled" xml:space="preserve"><value>Already installed. Select this model in the list above.</value></data>
+  <data name="OllamaDownloadSize" xml:space="preserve"><value>Approximate download: {0:N0} MB.</value></data>
+  <data name="OtherLocalModel" xml:space="preserve"><value>Other model by name</value></data>
+  <data name="LocalModelConnectionSettings" xml:space="preserve"><value>Connection settings</value></data>
+  <data name="OllamaLocateToInstall" xml:space="preserve"><value>Locate the Ollama executable above to download models.</value></data>
+  <data name="OllamaPullOpened" xml:space="preserve"><value>The download terminal is open. When it finishes, refresh and select the installed model.</value></data>
+  <data name="OllamaExecutableInvalid" xml:space="preserve"><value>Select an existing Ollama executable (ollama.exe on Windows).</value></data>
+  <data name="OllamaStartTimeout" xml:space="preserve"><value>Ollama did not start in time. Check the installation or whether the port is in use, then try again.</value></data>
+  <data name="OllamaPullModelInvalid" xml:space="preserve"><value>Enter a local model name, for example qwen3:4b. Cloud models and shell commands are not allowed.</value></data>
+  <data name="OllamaLaunchEndpointInvalid" xml:space="preserve"><value>To start Ollama or install a model, use a local HTTP address without a path, for example http://localhost:11434.</value></data>
+  <data name="OllamaLaunchFailed" xml:space="preserve"><value>Could not open Ollama, the browser or the terminal. Check the installation and try again.</value></data>
+  <data name="OllamaTerminalUnsupported" xml:space="preserve"><value>Automatic terminal installation is available on Windows. Run ollama pull with the chosen model in your terminal, then refresh.</value></data>
+  <data name="SetupRequiredHelp" xml:space="preserve"><value>Connect a local Ollama model or an external model to start chatting. Local protection rules work automatically. Add a folder whenever you need file context.</value></data>
+  <data name="WorkspaceReadyTitle" xml:space="preserve"><value>Ready to work</value></data>
+  <data name="WorkspaceReadyHelp" xml:space="preserve"><value>Your model is connected. Folder context is prepared automatically; review it once before sending your task.</value></data>
+  <data name="Configure" xml:space="preserve"><value>Configure</value></data>
+  <data name="ChooseFolderShort" xml:space="preserve"><value>Choose</value></data>
+  <data name="EditModel" xml:space="preserve"><value>Edit model connection</value></data>
+  <data name="SupportedContextFiles" xml:space="preserve"><value>Code and text of any extension, PDF, Word, Excel, presentations and images. Images and scans need a local vision model, such as gemma3:4b.</value></data>
+  <data name="ImageContextHelp" xml:space="preserve"><value>For images and scans, choose a vision model such as gemma3:4b.</value></data>
+  <data name="ImageNeedsLocalModel" xml:space="preserve"><value>Enable and connect a local vision model to read images.</value></data>
+  <data name="ImageNeedsVisionModel" xml:space="preserve"><value>The local model does not support images. Choose a downloaded vision model, for example gemma3:4b, and prepare the context again.</value></data>
+  <data name="ImageReadFailed" xml:space="preserve"><value>The local model could not read the image. Try another local vision model.</value></data>
+  <data name="FileUnsupported" xml:space="preserve"><value>Skipped: unsupported binary format or text encoding.</value></data>
+  <data name="FileUnreadable" xml:space="preserve"><value>Skipped: unreadable, encrypted or damaged file.</value></data>
+  <data name="FileTooLarge" xml:space="preserve"><value>Skipped: file size or extraction limit exceeded.</value></data>
+  <data name="FileContextLimit" xml:space="preserve"><value>Skipped: the selected context character limit was reached.</value></data>
+  <data name="FileEmpty" xml:space="preserve"><value>Skipped: no readable text or image content.</value></data>
+  <data name="FileExcluded" xml:space="preserve"><value>Skipped by the credential and secret-file protection rules.</value></data>
+  <data name="ConnectModelTitle" xml:space="preserve"><value>Connect a model and start</value></data>
+  <data name="LocalOllamaChatTitle" xml:space="preserve"><value>Local Ollama model</value></data>
+  <data name="FolderOptionalTitle" xml:space="preserve"><value>Folder context · optional</value></data>
+  <data name="ReadyToChatTitle" xml:space="preserve"><value>Ready to chat</value></data>
+  <data name="ReadyToChatHelp" xml:space="preserve"><value>Your model is connected. Write a message below. You can add a folder later; protection rules already work.</value></data>
+  <data name="StatusReadyToChat" xml:space="preserve"><value>Ready. Write your message.</value></data>
+  <data name="ChatWithoutFolderSummary" xml:space="preserve"><value>Chat without a folder · add files whenever you need them.</value></data>
+  <data name="UseApiKey" xml:space="preserve"><value>Use an API key</value></data>
+  <data name="AnonymousApiHelp" xml:space="preserve"><value>No key: works with an OpenAI-compatible service that allows anonymous requests. Official OpenAI and Claude APIs require an account and credentials. Free access depends on the chosen provider.</value></data>
+  <data name="ApiAuthenticationRequired" xml:space="preserve"><value>This service requires authentication. Enable “Use an API key” and enter its key, or choose a provider that allows anonymous requests.</value></data>
+  <data name="CustomTrimmingAutomatic" xml:space="preserve"><value>Automatic trimming is active. Your custom rule will apply when a local Ollama model is connected; you can already chat with the current model.</value></data>
+  <data name="CustomTrimmingEnterInstructions" xml:space="preserve"><value>Automatic trimming is active. Add your instructions below to use the custom rule.</value></data>
+  <data name="SignalOff" xml:space="preserve"><value>Off</value></data>
+  <data name="DisableCleanerHint" xml:space="preserve"><value>Disable the AI cleaner in this chat. Built-in rules stay active; Ollama keeps running for other apps.</value></data>
+  <data name="EnableCleanerHint" xml:space="preserve"><value>Enable the local AI cleaner in this chat. The selected model will be checked again; choose a model first if needed.</value></data>
+  <data name="DisableAssistantHint" xml:space="preserve"><value>Disable the assistant in this chat and cancel its current request. The model and other apps keep running.</value></data>
+  <data name="EnableAssistantHint" xml:space="preserve"><value>Enable the assistant in this chat and check its connection again. Choose a model first if needed.</value></data>
+  <data name="StatusCleanerDisabled" xml:space="preserve"><value>AI cleaner off for this chat. Built-in protection rules stay active. Review the context again before sending.</value></data>
+  <data name="StatusAssistantDisabled" xml:space="preserve"><value>Assistant off for this chat. Click Assistant above to reconnect.</value></data>
 </root>

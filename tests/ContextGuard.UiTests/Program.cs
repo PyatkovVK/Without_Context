@@ -47,7 +47,7 @@ internal static class Program
             if (path == "/v1/models")
             {
                 True(request.Method == HttpMethod.Get && request.Content is null, "API connection check does not generate a reply");
-                True(request.Headers.Authorization?.Parameter == "test-key", "Probe uses only authorization header");
+                True(request.Headers.Authorization?.Parameter is "test-key" or "second-test-key", "Probe uses only the current chat's authorization header");
                 if (rejectApi) return new(HttpStatusCode.Unauthorized) { Content = new StringContent("echoed-sensitive-value") };
                 return Response("{\"data\":[{\"id\":\"demo-remote\"}]}");
             }
@@ -84,7 +84,7 @@ internal static class Program
             var vm = first.Session;
             True(window.Title == "Without Context", "Application is renamed");
             True(!vm.CanCompose && workspace.Conversations.Count == 1, "First chat starts locked with no context");
-            True(workspace.LanguageIndex == 0 && VisibleText(window, "Start with your folder"), "English is the default");
+            True(workspace.LanguageIndex == 0 && VisibleText(window, "Connect a model and start"), "English is the default");
             True(vm.CleanerConnectionState == ConnectionState.Disabled && vm.ChatConnectionState == ConnectionState.Unchecked, "Signals never pretend unverified models are connected");
             True(window.FindControl<Border>("ChatsSidebar")!.Bounds.Width == 310 && window.FindControl<Border>("ModelsSidebar")!.Bounds.Width == 350, "Sidebars render expanded");
             True(!window.FindControl<Button>("ArchivesButton")!.IsVisible && !workspace.HasArchivedChats, "An empty archive has no sidebar entry");
@@ -152,7 +152,7 @@ internal static class Program
             True(languageSelector.SelectedIndex == 0 && settings.FindControl<ComboBox>("ProfileSelector")!.SelectedIndex == 0, "Default selections render in settings");
             SaveFrame(settings, "settings");
             languageSelector.SelectedIndex = 1; Flush();
-            True(workspace.LanguageIndex == 1 && vm.LanguageIndex == 1 && VisibleText(window, "Начните с вашей папки"), "Language selection applies to the workspace");
+            True(workspace.LanguageIndex == 1 && vm.LanguageIndex == 1 && VisibleText(window, "Подключите модель и начинайте"), "Language selection applies to the workspace");
             languageSelector.SelectedIndex = 0; Flush();
             vm.ProfileIndex = 1; vm.CustomTerms = "cleanup-only-private-value";
             settings.Close(); SettleAnimations();
@@ -169,12 +169,13 @@ internal static class Program
             vm.ContextApproved = true;
             True(!vm.CanCompose, "An assistant model is required");
             vm.LocalModel = "demo-local";
+            ConnectForWork(vm);
             vm.MaximumTrimming = true;
             True(!vm.Ready && !vm.ContextApproved, "Changing trimming requires preparing and reviewing context again");
             vm.ModerateTrimming = true; vm.PrepareCommand.Execute(null); Wait(vm); vm.ContextApproved = true;
             vm.Prompt = "First chat task: help me plan a product launch.\nCreate a three-month plan with milestones, owners and success metrics. My email: another@example.com";
             vm.PreviewPromptCommand.Execute(null); Wait(vm);
-            True(vm.HasPending && !vm.PendingText.Contains("another@example.com") && networkCalls == 0, "Message preview stays local");
+            True(vm.HasPending && !vm.PendingText.Contains("another@example.com") && generatedChats == 0, "Message preview uses the local cleaner without an assistant request");
             string reviewedContext = vm.ContextText, reviewedMessage = vm.PendingText, draft = vm.Prompt;
             string[] placeholders = vm.Replacements.Select(replacement => replacement.Placeholder).ToArray();
             settings = OpenSettings(window, workspace);
@@ -204,16 +205,17 @@ internal static class Program
             vm.RefreshModelsCommand.Execute(null); Wait(vm);
             True(vm.LocalModel == "manual-local-model", "Refreshing a list cannot erase a manually entered model");
             vm.LocalModel = "demo-local";
+            int detectorBeforeProbe = detectorCalls;
             vm.UseAgent = true; vm.AgentModel = "local-detector";
             vm.CheckCleanerCommand.Execute(null); Wait(vm);
-            True(vm.CleanerConnectionState == ConnectionState.Connected && detectorCalls == 0, "Cleaner probe verifies metadata without raw text");
+            True(vm.CleanerConnectionState == ConnectionState.Connected && detectorCalls == detectorBeforeProbe, "Cleaner probe verifies metadata without raw text");
             vm.RefreshAgentModelsCommand.Execute(null); Wait(vm);
             True(vm.HasAgentModels && vm.AgentModel == "local-detector" && vm.CleanerConnectionState == ConnectionState.Connected, "Cleaner model-list refresh preserves its verified configuration");
             vm.AgentModel = "different-model";
             True(vm.CleanerConnectionState == ConnectionState.Unchecked, "Changing cleaner model resets the signal");
             vm.AgentModel = "local-detector"; cloudCleaner = true;
             vm.CheckCleanerCommand.Execute(null); Wait(vm, expectError: true);
-            True(vm.CleanerConnectionState == ConnectionState.Failed && detectorCalls == 0, "Cloud cleaner check: state=" + vm.CleanerConnectionState + ", detector calls=" + detectorCalls);
+            True(vm.CleanerConnectionState == ConnectionState.Failed && detectorCalls == detectorBeforeProbe, "Cloud cleaner check: state=" + vm.CleanerConnectionState + ", detector calls=" + detectorCalls);
             cloudCleaner = false; vm.DismissErrorCommand.Execute(null); vm.UseAgent = false;
 
             vm.ProviderIndex = 1; vm.ApiEndpoint = "https://api.example.com/v1/chat/completions";
@@ -252,6 +254,7 @@ internal static class Program
                 "Closure cancels probes and prevents late results from restoring private state");
 
             // Independent sessions prevent one chat's originals, mappings and history entering another.
+            ConnectForWork(vm);
             vm.PrepareCommand.Execute(null); Wait(vm); vm.ContextApproved = true;
             vm.Prompt = "First chat task"; vm.PreviewPromptCommand.Execute(null); Wait(vm); vm.SendCommand.Execute(null); Wait(vm);
             vm.Prompt = "Unsent first chat draft";
@@ -261,7 +264,7 @@ internal static class Program
             var second = workspace.Active!; var secondVm = second.Session;
             True(workspace.Conversations.Count == 2 && !secondVm.Ready && secondVm.Chat.Count == 0 && secondVm.LocalModel == "demo-local", "New chat copies configuration but has its own empty context and history");
             secondVm.ProviderIndex = 1; secondVm.ApiEndpoint = "https://api.example.com/v1/chat/completions"; secondVm.ApiModel = "demo-remote"; secondVm.ApiKey = "second-test-key";
-            secondVm.Folder = folderB; secondVm.PrepareCommand.Execute(null); Wait(secondVm); secondVm.ContextApproved = true;
+            secondVm.Folder = folderB; ConnectForWork(secondVm); secondVm.PrepareCommand.Execute(null); Wait(secondVm); secondVm.ContextApproved = true;
             secondVm.Prompt = "Second chat task"; secondVm.PreviewPromptCommand.Execute(null); Wait(secondVm); secondVm.SendCommand.Execute(null); Wait(secondVm);
             WaitTask(secondVm.TitleUpdate);
             string secondPayload = Decode(payloads[^1]);
@@ -354,8 +357,9 @@ internal static class Program
                 secondVm.ApiKey == "" && workspace.ArchivedCount == 0, "Clear all also releases archived credentials and context");
             var cleanVm = workspace.Active?.Session ?? throw new Exception("Clear all must leave an active chat");
             cleanVm.TrimmingMode = ContextTrimmingMode.Custom; cleanVm.TrimmingInstructions = "Keep goals"; cleanVm.Folder = folderB;
-            cleanVm.PrepareCommand.Execute(null); Wait(cleanVm, expectError: true);
-            True(!cleanVm.Ready && cleanVm.Error.Contains("Ollama cleaner"), "Custom trimming cannot silently use the remote assistant");
+            cleanVm.PrepareCommand.Execute(null); Wait(cleanVm);
+            True(cleanVm.Ready && cleanVm.ShowAutomaticTrimmingHint && cleanVm.EffectiveTrimmingMode == ContextTrimmingMode.Moderate,
+                "Unavailable custom trimming automatically uses a safe preset without a setup error");
             cleanVm.DismissErrorCommand.Execute(null); cleanVm.UseAgent = true; cleanVm.AgentModel = "local-detector";
             cleanVm.PrepareCommand.Execute(null); Wait(cleanVm);
             True(cleanVm.Ready && !cleanVm.ContextApproved && cleanVm.ContextText.Length <= ContextReducer.TargetCharacters(cleanVm.ContextLimit, cleanVm.TrimmingMode),
@@ -374,6 +378,9 @@ internal static class Program
             workspace.ToggleChatsCommand.Execute(null); workspace.ToggleModelsCommand.Execute(null); SettleAnimations();
             CheckPersistence(fixture, folderB);
             SidebarStateChecks.Run(fixture);
+            OllamaPanelChecks.Run(fixture);
+            WorkspaceSetupChecks.Run(folderB);
+            ConnectionToggleChecks.Run(folderB);
             CheckTitleLifecycle(folderB);
             Console.WriteLine("PASS UI: centered chevron drawings, collapsed settings access, constant hover/pressed colors, fully contained collapsed toggles, deletion confirmation, hidden empty archive, reversible motion, isolated sessions, persistence and privacy review.");
             Console.WriteLine("Synthetic screenshots: artifacts/screenshots/{mvp-design,start,sidebar-motion,collapsed,collapsed-hover,settings,delete-confirmation,context,message-ru,chat,chats,archive,compact}.png");
@@ -442,10 +449,11 @@ internal static class Program
             if (request.RequestUri!.AbsolutePath == "/api/show") return Response("{\"model_info\":{\"general.architecture\":\"llama\"}}");
             string body = await request.Content!.ReadAsStringAsync(ct);
             if (body.Contains("Create a short chat title")) { titleToken = ct; return await completion.Task; }
+            if (body.Contains("You are a local privacy detector")) return Response("{\"message\":{\"content\":\"{\\\"entities\\\":[]}\"}}");
             return Response("{\"message\":{\"content\":\"Completed safe reply\"},\"done\":true}\n");
         })));
         var first = workspace.Active!; var vm = first.Session;
-        vm.Folder = sourceFolder; vm.LocalModel = "demo-local"; vm.PrepareCommand.Execute(null); Wait(vm); vm.ContextApproved = true;
+        vm.Folder = sourceFolder; vm.LocalModel = "demo-local"; ConnectForWork(vm); vm.PrepareCommand.Execute(null); Wait(vm); vm.ContextApproved = true;
         void Send()
         {
             vm.Prompt = "Please help me plan a product launch"; vm.PreviewPromptCommand.Execute(null); Wait(vm); vm.SendCommand.Execute(null); Wait(vm);
@@ -483,7 +491,7 @@ internal static class Program
             True(original.Active!.Number == 1, "An empty store starts with Chat 1");
             var vm = original.Active!.Session; id = original.Active.Id;
             vm.LocalModel = "demo-local"; vm.ApiKey = "disk-only-key"; vm.CustomTerms = "DiskPrivateProject";
-            vm.Folder = sourceFolder; vm.PrepareCommand.Execute(null); Wait(vm); vm.ContextApproved = true;
+            vm.Folder = sourceFolder; ConnectForWork(vm); vm.PrepareCommand.Execute(null); Wait(vm); vm.ContextApproved = true;
             vm.RestoreLocally = true; vm.Prompt = "Discuss DiskPrivateProject with second@example.com";
             vm.PreviewPromptCommand.Execute(null); Wait(vm); vm.SendCommand.Execute(null); Wait(vm);
             WaitTask(vm.TitleUpdate);
@@ -495,13 +503,20 @@ internal static class Program
             string json = File.ReadAllText(Directory.GetFiles(storageFolder, "*.json").Single());
             foreach (string secret in new[] { "second@example.com", "second-sensitive-password", "disk-only-key", "DiskPrivateProject", "disk-only-unsent-draft", "ApiKey", "LocalRelativePath", "ContextApproved" })
                 True(!json.Contains(secret), "Storage must exclude secrets, original paths, keys, drafts and approval");
+            var closingWindow = new MainWindow(original); closingWindow.Show(); Flush();
+            var actionsButton = closingWindow.FindControl<Button>("ModelChatActionsButton")!;
+            var actionsMenu = (Flyout)actionsButton.Flyout!; actionsMenu.ShowAt(actionsButton); Flush();
+            // Use the relocated control's binding; the save/export workflow is unchanged.
             original.PickExportFolderAsync = () => Task.FromResult<string?>(exportFolder);
-            original.ExportChatCommand.Execute(null); WaitWorkspace(original);
+            closingWindow.FindControl<Button>("ExportChatButton")!.Command!.Execute(null); WaitWorkspace(original);
             True(!original.StorageFailed && Directory.GetFiles(exportFolder).Length == 2, "Export writes JSON and Markdown");
+            True(!actionsMenu.IsOpen, "Starting export closes the header menu during the operation");
             foreach (string file in Directory.GetFiles(exportFolder))
                 True(!File.ReadAllText(file).Contains("second@example.com"), "Export excludes restored display values");
-            original.ArchiveChatCommand.Execute(null); WaitTask(original.FlushStorageAsync());
-            var closingWindow = new MainWindow(original); closingWindow.Show(); Flush(); closingWindow.Close();
+            actionsMenu.ShowAt(actionsButton); Flush();
+            closingWindow.FindControl<Button>("ArchiveChatButton")!.Command!.Execute(null); WaitTask(original.FlushStorageAsync());
+            True(!actionsMenu.IsOpen, "Changing the active chat through archive closes the header menu");
+            closingWindow.Close();
             SettleAnimations(); True(!closingWindow.IsVisible, "Normal window closure flushes storage and releases the window");
         }
         using (var reopened = new WorkspaceViewModel(clients, new ChatArchiveService(new JsonDirectoryChatStore(storageFolder))))
@@ -516,7 +531,7 @@ internal static class Program
             vm.LocalModel = "demo-local"; True(vm.Chat.Count == 2, "Initial model setup preserves reopened history");
             vm.UseAgent = true; vm.AgentModel = "local-cleaner";
             True(vm.Chat.Count == 2 && vm.Ready && !vm.ContextApproved, "Initial cleaner setup preserves reopened history and requires review");
-            vm.ContextApproved = true; vm.Prompt = "Continue the discussion";
+            vm.Folder = sourceFolder; ConnectForWork(vm, "local-cleaner"); vm.ContextApproved = true; vm.Prompt = "Continue the discussion";
             vm.PreviewPromptCommand.Execute(null); Wait(vm); vm.SendCommand.Execute(null); Wait(vm);
             True(vm.Chat.Count == 4, "A reviewed reopened chat can continue its conversation");
             reopened.DeleteChatCommand.Execute(null); WaitTask(reopened.FlushStorageAsync());
@@ -528,6 +543,12 @@ internal static class Program
             True(new JsonDirectoryChatStore(storageFolder).LoadAsync(default).GetAwaiter().GetResult().All(chat => chat.Messages.Count == 0 && !chat.Archived),
                 "Clear all also removes persisted archived transcripts");
         }
+    }
+    static void ConnectForWork(MainViewModel vm, string cleaner = "local-detector", [System.Runtime.CompilerServices.CallerLineNumber] int line = 0)
+    {
+        vm.UseAgent = true; vm.AgentModel = cleaner;
+        vm.CheckChatCommand.Execute(null); Wait(vm, line: line);
+        vm.CheckCleanerCommand.Execute(null); Wait(vm, line: line);
     }
     static void WaitTask(Task task)
     {
@@ -560,12 +581,12 @@ internal static class Program
         Flush();
     }
     static bool VisibleText(Window window, string text) => window.GetVisualDescendants().OfType<TextBlock>().Any(block => block.Text == text);
-    static void Wait(MainViewModel vm, bool expectError = false)
+    static void Wait(MainViewModel vm, bool expectError = false, [System.Runtime.CompilerServices.CallerLineNumber] int line = 0)
     {
         var deadline = DateTime.UtcNow.AddSeconds(20);
         while (vm.Busy && DateTime.UtcNow < deadline) { Flush(); Thread.Sleep(10); }
         Flush(); True(!vm.Busy, "Operation timed out");
-        True(vm.HasError == expectError, "Unexpected operation result: " + vm.Error);
+        True(vm.HasError == expectError, "Unexpected operation result at line " + line + ": " + vm.Error);
     }
     static void SaveFrame(Window window, string name)
     {

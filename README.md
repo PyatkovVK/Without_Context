@@ -21,6 +21,7 @@ Original files stay unchanged. Anonymized chat history and context are saved loc
 - Four protection profiles: everything; secrets and personal data; internal data and secrets; keys, passwords and tokens only.
 - Custom values to replace, such as companies, projects or surnames, one value per line.
 - Optional local Ollama agent for additional sensitive entity detection.
+- Guided Ollama discovery, manual executable selection, server startup and model download through a Windows terminal in the right sidebar.
 - Review and edit both context and messages before sending.
 - Streaming replies, cancellation, independent chats and session cleanup.
 - Collapsible chat and model sidebars, with preferences in a modal Settings window.
@@ -35,6 +36,8 @@ Original files stay unchanged. Anonymized chat history and context are saved loc
 ## Run the app
 
 Install .NET SDK 10. Local chat also requires Ollama to be installed and running, with a model downloaded. Remote APIs require an endpoint, a model ID and an API key if the provider requires one.
+
+On Windows, open the local privacy model card in Chat settings to check Ollama. The app looks in the standard installation directory and PATH, or lets you locate `ollama.exe`. It offers the official download page when missing, a start action when stopped, and model installation with `ollama pull` in a visible terminal. After the download finishes, refresh the model list and select the downloaded model. Detection does not enable the cleaner or change reviewed context. See [Ollama setup requirements](requirements/right-sidebar/local-cleaner.md).
 
 From the repository root:
 
@@ -88,12 +91,12 @@ When a macOS bundle is created on Windows, restore its executable permission on 
 ## Your first conversation
 
 1. Open **Settings** in the left sidebar to choose the interface language, anonymization profile and custom values to replace. In the collapsed sidebar, use the settings icon at the bottom.
-2. In the right sidebar's **Folder context** section, select a folder containing documents or source code.
-3. In the right **Chat settings** panel, expand **Local privacy model** to optionally enable a downloaded Ollama cleaner. Expand **Model for your requests** to select the assistant:
+2. Connect one model in **Chat settings**. Local Ollama and an external assistant are alternatives; neither a second model nor a folder is required for ordinary chat. Connecting a downloaded model in **Local privacy model** assigns it as the assistant when no assistant is connected. The same local model can also handle local privacy processing automatically.
+3. Alternatively, configure the assistant directly in **Model for your requests**:
    - **Ollama:** the default address is `http://localhost:11434`. Download a model, refresh the list or enter its name manually.
-   - **API:** enter a full HTTPS endpoint such as `https://<provider>/v1/chat/completions`, a model ID and an API key if required. Bearer authorization, SSE and ordinary JSON responses are supported.
-4. Select the **Context trimming** mode. Custom instructions require an enabled downloaded local cleaner.
-5. In the right sidebar, click **Prepare context**. Review the anonymized, reduced text in the center and confirm the review. Use **Review** to reopen the preview and **Back to chat** to return to the conversation.
+   - **API:** enter a full HTTPS endpoint such as `https://<provider>/v1/chat/completions` and a model ID. Enable **Use an API key** only if the service requires credentials. No-key mode works when the provider permits anonymous OpenAI-compatible requests; it does not make a paid service free. Official OpenAI and Claude APIs require authenticated access.
+4. Once the selected assistant is verified, start writing in the main workspace. Connected cards show the model, status and a pencil button for editing. Local protection rules run with external-only chat as well. If custom text cleanup lacks a local model or instructions, Moderate trimming runs automatically with a small inline explanation. Custom code cleanup works with built-in local rules independently.
+5. Add a folder whenever file context is needed. The folder picker or connecting with a selected folder prepares it automatically; after typed settings changes, the first preview prepares missing context. Review the anonymized text once before sending it. **Prepare context** remains available for rescanning, **Review** reopens the preview and **Back to chat** returns to the conversation.
 6. Write your task and click the arrow or press Ctrl+Enter to **Review message**. Review the preview, then click **Send**.
 
 The MVP interface follows the supplied three-panel design: a dark navy chat list, a central conversation with right-aligned user bubbles and a bottom composer, and folder context, model cards and trimming controls on the right. Both sidebars collapse with eased width transitions; their buttons stay centered inside the collapsed panels. Buttons use a constant hover fill with the same color while pressed, avoiding animated highlights. The conversation title menu opens the chat, context, replacement map and file list. Model cards expand to reveal connection details; general preferences open in a modal window with a dimmed, inactive background and no page scrollbar.
@@ -104,15 +107,15 @@ The open/closed state of each sidebar is saved on normal exit and restored on th
 
 ## Local storage and export
 
-Chats are saved locally. Export the selected chat from the right sidebar or export all chats from Settings.
+Chats are saved locally. Export the selected chat from the **⋮** menu next to the right sidebar's close button or export all chats from Settings. The same menu contains archive/restore and delete actions.
 
 Chats are stored as versioned JSON files with opaque IDs in the operating system's local application-data folder, under **WithoutContext/chats**. On Windows this is `%LOCALAPPDATA%\WithoutContext\chats`. The exact path is displayed in **Settings → Chat storage folder**, where you can select and copy it.
 
-**Export chat** at the bottom of the right sidebar exports the selected conversation. **Settings → Export all chats** also includes archived chats. Choose an output folder using the system dialog; each chat produces `chat-<opaque-id>.json` and `chat-<opaque-id>.md`. JSON includes the title, anonymized context, completed message pairs, timestamps and archive flag. Markdown provides the same title with a readable transcript and context. Exported copies remain in that folder after you delete a chat in the application. They are also ignored by Git when exported into this repository. Version 2 adds the title; existing version 1 chats without it remain readable.
+**Export chat** in the right sidebar's header **⋮** menu exports the selected conversation. **Settings → Export all chats** also includes archived chats. Choose an output folder using the system dialog; each chat produces `chat-<opaque-id>.json` and `chat-<opaque-id>.md`. JSON includes the title, anonymized context, completed message pairs, timestamps and archive flag. Markdown provides the same title with a readable transcript and context. Exported copies remain in that folder after you delete a chat in the application. They are also ignored by Git when exported into this repository. Version 2 adds the title; existing version 1 chats without it remain readable.
 
 Stored and exported data uses the anonymized messages, including when local display restores original values. Connection settings, API keys, original folder/file paths, original-value mappings, custom replacement lists, unsent drafts, incomplete responses and review approval are excluded. Edited context is excluded until a new safe snapshot is available. These are plain-text files, not encrypted files; the selected protection profile and your review still determine what information is retained.
 
-After restarting, chats reopen with anonymized text and a fresh replacement map. Select the assistant model, re-enter credentials if needed, optionally re-enable and configure the local cleaner, then use **Review** in the right sidebar and confirm the saved context before continuing. Original values cannot be restored from old placeholders because the original map is deliberately not saved. Initial model configuration preserves the reopened transcript; preparing new folder context or editing context resets it as usual.
+After restarting, chats reopen with anonymized text and a fresh replacement map. Reconnect the selected assistant and re-enter credentials if needed. A saved nonempty context requires review before continuing, including when no source folder is selected; a local cleaner and folder remain optional. Original values cannot be restored from old placeholders because the original map is deliberately not saved. Initial model and optional folder configuration preserves the reopened transcript and revokes approval; preparing new folder context or editing context resets it as usual.
 
 Storage limits are 200 chats, 512 completed messages per chat, 8 MiB per JSON file and 64 MiB in total. Invalid or unsupported saved files produce a visible error without replacing existing files. Save failures are shown in the main window; if pending changes cannot be saved when closing, you can keep the app open or explicitly close without saving. Export or delete old conversations before reaching the limits.
 
@@ -124,7 +127,9 @@ Changing the folder, anonymization rules, trimming mode or active custom instruc
 
 The top bar shows separate states for the **Cleaner** and **Assistant**: not checked, connecting, connected or failed. Expand a model card in **Chat settings** and click **Connect**. Editing its model, endpoint or credentials resets its state.
 
-Ollama checks confirm that the selected model is available locally. Remote API checks use the compatible `/models` endpoint and verify the selected model ID using the supplied credentials, without sending documents, prompts or generating a reply. APIs that do not support this check stay **Not verified** until a successful chat request. Indicators reflect the last check or request, not continuous background monitoring. With the Ollama cleaner disabled, the cleaner indicator shows **Local rules**.
+The two top-bar indicators are also independent switches for the current chat. Click an active role to disable it and cancel its current request; click again to verify and reconnect, or open settings if no model has been selected. Cleaner-off keeps built-in privacy rules and requires context review again. Assistant-off keeps the conversation readable and disables the composer. Completed messages, drafts, model settings and credentials remain in this chat's memory. A manually disabled role stays off when reconnecting the other role. These switches never stop or unload Ollama, change external services or affect another chat or program.
+
+Ollama checks confirm that the selected model is available locally. Remote API checks first use the compatible `/models` endpoint. An explicit **Connect** action can verify APIs without metadata using one fixed neutral request with a one-token output limit and a 16 KiB response limit; this counts toward provider limits but sends no documents or conversation data. Metadata-only callers never generate a response. Indicators reflect the last check or request, not continuous monitoring. With the Ollama cleaner disabled, **Local rules** continue to protect external-only chat. Changing the assistant, endpoint or credentials, or a failed assistant check, revokes readiness. Opening an editor alone preserves review and the current connection.
 
 ## Context trimming
 
@@ -135,11 +140,14 @@ Trimming runs after anonymization and before review. Presets shorten file excerp
 | Minimal | 75% of the collection limit | Up to 12 |
 | Moderate (default) | 50% | Up to 6 |
 | Maximum | 25% | Up to 2 |
-| Custom | 50%, with local editorial instructions | Up to 6 |
+| Custom → Clean code | 100%, with local protection rules and no editorial rewrite | Up to 6 |
+| Custom → Clean text by description | 50%, with local editorial instructions | Up to 6 |
 
-With the default 24,000-character collection limit, the text budgets are 18,000 / 12,000 / 6,000 / 12,000 characters. Message limits retain complete user/assistant pairs and exclude the new message and required system/context messages. Older messages stay visible in the chat and are omitted from subsequent model requests. These are character and message limits, not exact token counts.
+With the default 24,000-character collection limit, preset text budgets are 18,000 / 12,000 / 6,000 characters. Custom code cleanup keeps up to 24,000 characters; description cleanup uses 12,000. Message limits retain complete user/assistant pairs and exclude the new message and required system/context messages. Older messages stay visible in the chat and are omitted from subsequent model requests. These are character and message limits, not exact token counts.
 
-**Custom** sends anonymized folder text and anonymized instructions (up to 1,000 input characters) to the enabled local Ollama cleaner. Its model metadata is validated before the request. The result is anonymized again and limited to the text budget, then shown for review. Custom instructions apply to folder text; history uses the fixed six-message limit. Failed or cancelled preparation produces no approved context. There is no remote fallback.
+**Custom → Clean code** replaces detected tokens, keys and credentials using local rules. Other sensitive values follow your protection profile and custom values. No instructions or model rewrite are required. Collected code keeps its remaining text within the collection limits; review it before sending. Source files remain unchanged.
+
+**Custom → Clean text by description** shows a text area for instructions (up to 1,000 input characters) and sends anonymized folder text and anonymized instructions to the enabled local Ollama cleaner. Its model metadata is validated before the request. The result is anonymized again and limited to the text budget, then shown for review. Instructions apply to folder text; history uses the fixed six-message limit. Switching between cleanup choices retains the description text but requires new preparation and review. Failed or cancelled preparation produces no approved context. There is no remote fallback.
 
 ## Context protection
 
@@ -153,9 +161,11 @@ The replacement map stays in session memory. Restoring values and real file name
 
 ## Limitations
 
-- Supports UTF-8 and UTF-16 text files, including Markdown, source code, JSON/YAML/XML, CSV and logs. PDF, Word, Excel and other binary formats are skipped.
+- Reads UTF-8, BOM-marked UTF-16/UTF-32 text regardless of extension, including extensionless files, source code, Markdown, JSON/YAML/XML, CSV and logs. Unknown extensions become `.txt` in outbound aliases so private extension names cannot leak.
+- Extracts PDF text, DOCX/DOCM, XLSX/XLSM, PPTX/PPTM, ODT/ODS/ODP. Office macros, formulas, external links and embedded executables are never run. Excel uses saved cell values. Unsupported, damaged and oversized files appear with reasons in the file list, up to 160 reported entries.
+- PNG, JPEG, WebP, BMP, GIF and ICO images are decoded locally, limited to 16 million pixels, reduced to at most 2048 pixels per side and re-encoded without metadata. A freshly validated local vision model, such as `gemma3:4b`, transcribes text and describes visible content; output is anonymized before review. Image-only PDF pages use supported embedded images, up to 8 per page. Complex PDF scans using unsupported image filters, legacy DOC/XLS/PPT, audio, video and other binary formats are not decoded. Recognition quality depends on the selected model and image readability.
 - Excludes `.env*`, keys, `secrets.*`/`credentials*`, service folders, dependencies, build output and links/junctions.
-- Limits: 128 KiB per file, 160 included files and 15,000 inspected entries. The default text limit is 24,000 characters, adjustable from 4,000 to 96,000. Oversized files are skipped entirely; the summary indicates incomplete context.
+- Limits: 128 KiB per plain-text file, 8 MiB per document/image, 64 MiB of input per scan, 160 included files and 15,000 inspected entries. Documents have at most 100 PDF pages or 512 ZIP entries; each selected XML part is limited to 4 MiB, with 16 MiB total expanded XML. Extraction is capped at 96,000 characters per file. The default context limit is 24,000 characters, adjustable from 4,000 to 96,000. Oversized files are skipped entirely; the summary indicates incomplete context.
 - Context may exceed the selected model's capacity. Ollama is requested to use a 32,768-token window; reduce the context limit if memory is insufficient.
 - The model suggests changes as text. It has no disk access, tools or ability to apply patches automatically.
 
